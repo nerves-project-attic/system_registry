@@ -32,4 +32,11 @@ defmodule SystemRegistry.Utils do
     Registry.match(B, :registrations, {from, :_}) != []
   end
 
+  def scope_map(scope, value) do
+    scope
+    |> Tuple.to_list()
+    |> Enum.reverse
+    |> Enum.reduce(value, &Map.put(%{}, &1, &2))
+  end
+
 end

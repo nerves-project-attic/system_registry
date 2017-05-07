@@ -10,15 +10,23 @@ defmodule SystemRegistry do
   alias SystemRegistry.Server
   alias SystemRegistry.State, as: S
   import SystemRegistry.Utils
-  # Public API
 
   @doc """
-    Execute an transaction to insert | delete | modify state, or config
+    Execute an transaction to insert or modify state, or config
   """
-  @spec transaction(scope, value :: map) ::
+  @spec update(scope, value :: map) ::
     {:ok, map} | {:error, term}
-  def transaction(scope, value) do
-    GenServer.call(Server, {:transaction, scope, value})
+  def update(scope, value) do
+    GenServer.call(Server, {:update, scope, value})
+  end
+
+  @doc """
+    Execute an transaction to delete state, or config
+  """
+  @spec delete(scope, keys :: [term]) ::
+    {:ok, map} | {:error, term}
+  def delete(scope, keys) do
+    GenServer.call(Server, {:delete, scope, keys})
   end
 
   @spec match(match_spec :: term) :: map

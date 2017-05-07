@@ -4,7 +4,9 @@ defmodule SystemRegistry.Server do
   alias SystemRegistry.Registration, as: R
   alias SystemRegistry.Binding, as: B
   alias SystemRegistry.State, as: S
+
   import SystemRegistry.Utils
+  import SystemRegistry.Transaction
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, [opts], name: __MODULE__)
@@ -19,13 +21,25 @@ defmodule SystemRegistry.Server do
     }}
   end
 
-  def handle_call({:transaction, scope, value}, {from, _ref}, s) do
+  def handle_call({:update, scope, value}, {from, _ref}, s) do
     keys = Map.keys(value)
     case ownership(scope, keys, from) do
       {:ok, free} ->
         Process.monitor(from)
         apply_ownership(scope, free, from)
-        {new, _old} = apply_transaction(scope, value)
+        {new, _old} = apply_update(scope, value)
+        s = notify_all(from, new, s)
+        {:reply, {:ok, new}, s}
+      error ->
+        {:reply, error, s}
+    end
+  end
+
+  def handle_call({:delete, scope, keys}, {from, _ref}, s) do
+    case ownership(scope, keys, from) do
+      {:ok, _} ->
+        free_ownership(scope, keys, from)
+        {new, _old} = apply_delete(scope, keys)
         s = notify_all(from, new, s)
         {:reply, {:ok, new}, s}
       error ->
@@ -61,10 +75,7 @@ defmodule SystemRegistry.Server do
       records ->
         set = strip(records) |> List.first
         Enum.each(set, fn({scope, key}) ->
-          Registry.update_value(S, :global, fn(global) ->
-            scope = Tuple.to_list(scope)
-            update_in(global, scope, &Map.delete(&1, key))
-          end)
+          apply_delete(scope, [key])
           delete_set(scope, {pid, key})
         end)
     end
@@ -74,47 +85,6 @@ defmodule SystemRegistry.Server do
   end
 
   # Private API
-
-  defp ownership(scope, keys, pid) do
-    scope_set =
-      Registry.lookup(B, scope)
-      |> strip
-      |> List.first
-
-    {free, reserved} =
-      case scope_set do
-        nil -> {keys, []}
-        scope_set ->
-          Enum.reduce(keys, {[], []}, fn(key, {free, reserved}) ->
-            value = Enum.find(scope_set, fn
-              ({_, ^key}) -> true
-              _ -> false
-            end)
-
-            case value do
-              nil -> {[key | free], reserved}
-              {^pid, _} -> {free, reserved}
-              _ -> {free, [key | reserved]}
-            end
-          end)
-      end
-
-    case reserved do
-      [] -> {:ok, free}
-      reserved ->
-        {:error, {:reserved_keys, reserved}}
-    end
-  end
-
-  defp apply_ownership(scope, keys, owner) do
-    put_set(scope, Enum.map(keys, &({owner, &1})))
-    put_set(owner, Enum.map(keys, &({scope, &1})))
-  end
-
-  defp apply_transaction(scope, value) do
-    scope = scope_map(scope, value)
-    Registry.update_value(S, :global, &deep_merge(&1, scope))
-  end
 
   defp notify_all(from, msg, s) do
     {_rate_limited, registrations} =
@@ -155,35 +125,6 @@ defmodule SystemRegistry.Server do
 
   defp rate_limit(pid, interval) do
     Process.send_after(self(), {:rate_limit_expired, pid}, interval)
-  end
-
-  defp put_set(key, values) when is_list(values) do
-    Registry.register(B, key, MapSet.new())
-    Registry.update_value(B, key, fn(current) ->
-      Enum.reduce(values, current, &MapSet.put(&2, &1))
-    end)
-  end
-
-  defp put_set(key, value) do
-    Registry.register(B, key, MapSet.new())
-    Registry.update_value(B, key, &MapSet.put(&1, value))
-  end
-
-  defp delete_set(key, values) when is_list(values) do
-    Registry.update_value(B, key, fn(current) ->
-      Enum.reduce(values, current, &MapSet.delete(&2, &1))
-    end)
-  end
-
-  defp delete_set(key, value) do
-    Registry.update_value(B, key, &MapSet.delete(&1, value))
-  end
-
-  defp scope_map(scope, value) do
-    scope
-    |> Tuple.to_list()
-    |> Enum.reverse
-    |> Enum.reduce(value, &Map.put(%{}, &1, &2))
   end
 
 end

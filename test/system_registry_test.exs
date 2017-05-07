@@ -13,36 +13,48 @@ defmodule SystemRegistryTest do
 
   test "owner can change values", %{key: key} do
     assert {:ok, %{state: %{a: %{^key => %{a: 1}}}}} =
-      SystemRegistry.transaction({:state, :a, key}, %{a: 1})
+      SystemRegistry.update({:state, :a, key}, %{a: 1})
     assert {:ok, %{state: %{a: %{^key => %{a: 2}}}}} =
-      SystemRegistry.transaction({:state, :a, key}, %{a: 2})
+      SystemRegistry.update({:state, :a, key}, %{a: 2})
   end
 
   test "ownership of keys and lifecycle", %{key: key} do
-    {_, task} = transaction_task({:state, :a, key}, %{a: 1})
+    {_, task} = update_task({:state, :a, key}, %{a: 1})
     assert {:error, {:reserved_keys, [:a]}} =
-      SystemRegistry.transaction({:state, :a, key}, %{a: 2})
+      SystemRegistry.update({:state, :a, key}, %{a: 2})
     SystemRegistry.register(100)
     Process.exit(task, :kill)
     assert_receive {:system_registry, %{state: %{a: %{^key => %{}}}}}, 50
   end
 
+  test "owner can delete keys", %{key: key} do
+    SystemRegistry.update({:state, :a, key}, %{a: 1})
+    assert {:ok, %{state: %{a: %{^key => %{}}}}} =
+      SystemRegistry.delete({:state, :a, key}, [:a])
+  end
+
+  test "cannot delete reserved keys", %{key: key} do
+    update_task({:state, :a, key}, %{a: 1})
+    assert {:error, {:reserved_keys, [:a]}} =
+      SystemRegistry.delete({:state, :a, key}, [:a])
+  end
+
   test "receive rate limited", %{key: key} do
     SystemRegistry.register(250)
-    SystemRegistry.transaction({:state, :a, key}, %{a: 1})
+    SystemRegistry.update({:state, :a, key}, %{a: 1})
     refute_receive {:system_registry, %{state: %{a: %{^key => %{a: 1}}}}}, 300
-    transaction_task({:state, :a, key}, %{b: 2})
+    update_task({:state, :a, key}, %{b: 2})
     assert_receive {:system_registry, %{state: %{a: %{^key => %{a: 1, b: 2}}}}}, 50
-    transaction_task({:state, :a, key}, %{c: 3})
+    update_task({:state, :a, key}, %{c: 3})
     refute_receive {:system_registry, %{state: %{a: %{^key => %{a: 1, b: 2, c: 3}}}}}, 50
     assert_receive {:system_registry, %{state: %{a: %{^key => %{a: 1, b: 2, c: 3}}}}}, 250
   end
 
-  defp transaction_task(scope, value) do
+  defp update_task(scope, value) do
     parent = self()
     {:ok, task} =
       Task.start(fn ->
-        send(parent, SystemRegistry.transaction(scope, value))
+        send(parent, SystemRegistry.update(scope, value))
         Process.sleep(:infinity)
       end)
     assert_receive {:ok, global}
