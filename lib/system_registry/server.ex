@@ -21,29 +21,41 @@ defmodule SystemRegistry.Server do
     }}
   end
 
-  def handle_call({:update, scope, value}, {from, _ref}, s) do
+  def handle_call({:update, {:state, _, _} = scope, value}, {from, _ref}, s) do
     keys = Map.keys(value)
-    case ownership(scope, keys, from) do
-      {:ok, free} ->
+    {free, reserved} = ownership(scope, keys, from)
+    case reserved do
+      [] ->
         Process.monitor(from)
         apply_ownership(scope, free, from)
         {new, _old} = apply_update(scope, value)
         s = notify_all(from, new, s)
         {:reply, {:ok, new}, s}
-      error ->
-        {:reply, error, s}
+      reserved ->
+        {:reply, {:error, {:reserved_keys, reserved}}, s}
     end
   end
 
+  def handle_call({:update, {:config, _, _} = scope, value}, {from, _ref}, s) do
+    keys = Map.keys(value)
+    {free, _reserved} = ownership(scope, keys, from)
+    apply_ownership(scope, free, from)
+    Process.monitor(from)
+    {new, _old} = apply_update(scope, value)
+    s = notify_all(from, new, s)
+    {:reply, {:ok, new}, s}
+  end
+
   def handle_call({:delete, scope, keys}, {from, _ref}, s) do
-    case ownership(scope, keys, from) do
-      {:ok, _} ->
+    {free, reserved} = ownership(scope, keys, from)
+    case reserved do
+      [] ->
         free_ownership(scope, keys, from)
         {new, _old} = apply_delete(scope, keys)
         s = notify_all(from, new, s)
         {:reply, {:ok, new}, s}
-      error ->
-        {:reply, error, s}
+      reserved ->
+        {:reply, {:error, {:reserved_keys, reserved}}, s}
     end
   end
 

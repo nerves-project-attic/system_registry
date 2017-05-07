@@ -11,11 +11,17 @@ defmodule SystemRegistryTest do
     assert {:ok, ^global} = SystemRegistry.register()
   end
 
-  test "owner can change values", %{key: key} do
+  test "owner can change state", %{key: key} do
     assert {:ok, %{state: %{a: %{^key => %{a: 1}}}}} =
       SystemRegistry.update({:state, :a, key}, %{a: 1})
     assert {:ok, %{state: %{a: %{^key => %{a: 2}}}}} =
       SystemRegistry.update({:state, :a, key}, %{a: 2})
+  end
+
+  test "anyone can change config", %{key: key} do
+    update_task({:config, :a, key}, %{a: 1})
+    assert {:ok, %{config: %{a: %{^key => %{a: 2}}}}} =
+      SystemRegistry.update({:config, :a, key}, %{a: 2})
   end
 
   test "ownership of keys and lifecycle", %{key: key} do

@@ -28,12 +28,6 @@ defmodule SystemRegistry.Transaction do
             end
           end)
       end
-
-    case reserved do
-      [] -> {:ok, free}
-      reserved ->
-        {:error, {:reserved_keys, reserved}}
-    end
   end
 
   def apply_ownership(scope, keys, owner) do
