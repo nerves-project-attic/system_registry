@@ -1,5 +1,6 @@
 defmodule SystemRegistry.Utils do
-
+  @moduledoc false
+  
   alias SystemRegistry.Binding,   as: B
   alias SystemRegistry.State,     as: S
 

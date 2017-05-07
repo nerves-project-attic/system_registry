@@ -1,4 +1,6 @@
 defmodule SystemRegistry.Server do
+  @moduledoc false
+
   use GenServer
 
   alias SystemRegistry.Registration, as: R
@@ -44,6 +46,10 @@ defmodule SystemRegistry.Server do
     {new, _old} = apply_update(scope, value)
     s = notify_all(from, new, s)
     {:reply, {:ok, new}, s}
+  end
+
+  def handle_call({:update, _, _}, {from, _ref}, s) do
+    {:reply, {:error, :invalid_scope}, s}
   end
 
   def handle_call({:delete, scope, keys}, {from, _ref}, s) do

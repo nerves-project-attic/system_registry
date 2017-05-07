@@ -45,6 +45,11 @@ defmodule SystemRegistryTest do
       SystemRegistry.delete({:state, :a, key}, [:a])
   end
 
+  test "cannot publish to a strange bucket" do
+    assert {:error, :invalid_scope} =
+      SystemRegistry.update({:invalid, :a, "a"}, %{a: 1})
+  end
+
   test "receive rate limited", %{key: key} do
     SystemRegistry.register(250)
     SystemRegistry.update({:state, :a, key}, %{a: 1})
