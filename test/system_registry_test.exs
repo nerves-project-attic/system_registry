@@ -2,74 +2,56 @@ defmodule SystemRegistryTest do
   use ExUnit.Case, async: true
   doctest SystemRegistry
 
-  setup config do
-    %{key: config.test}
+  alias SystemRegistry, as: SR
+  alias SystemRegistry.Node
+
+  setup ctx do
+    %{root: ctx.test}
   end
 
-  test "Registration returns current state" do
-    global = SystemRegistry.match(:_)
-    assert {:ok, ^global} = SystemRegistry.register()
+  test "maps are transformed into composed transactions", %{root: root} do
+    t =
+      SR.transaction()
+      |> SR.update([root], %{b: 1, c: 2})
+
+    parent = %Node{parent: [], node: [root], from: nil, key: root}
+    leaf_b = %Node{parent: [root], node: [root, :b], from: self(), key: :b}
+    leaf_c = %Node{parent: [root], node: [root, :c], from: self(), key: :c}
+
+    assert MapSet.member?(t.nodes, parent)
+    assert MapSet.member?(t.nodes, leaf_b)
+    assert MapSet.member?(t.nodes, leaf_c)
+
+    assert t.updates == %{root => %{b: 1, c: 2}}
   end
 
-  test "owner can change state", %{key: key} do
-    assert {:ok, %{state: %{a: %{^key => %{a: 1}}}}} =
-      SystemRegistry.update({:state, :a, key}, %{a: 1})
-    assert {:ok, %{state: %{a: %{^key => %{a: 2}}}}} =
-      SystemRegistry.update({:state, :a, key}, %{a: 2})
+  test "local transaction commit", %{root: root} do
+    update = %{root => %{a: 1}}
+    SR.update([], update)
+    assert ^update = SR.match(self(), update)
+
+    SR.delete([root, :a])
+    assert %{} == SR.match(self(), :_)
   end
 
-  test "anyone can change config", %{key: key} do
-    update_task({:config, :a, key}, %{a: 1})
-    assert {:ok, %{config: %{a: %{^key => %{a: 2}}}}} =
-      SystemRegistry.update({:config, :a, key}, %{a: 2})
+  test "match specs", %{root: root} do
+    update = %{root => %{a: 1}}
+    SR.update([], update)
+    assert ^update = SR.match(self(), update)
+    assert %{} == SR.match(self(), %{blah: %{}})
   end
 
-  test "ownership of keys and lifecycle", %{key: key} do
-    {_, task} = update_task({:state, :a, key}, %{a: 1})
-    assert {:error, {:reserved_keys, [:a]}} =
-      SystemRegistry.update({:state, :a, key}, %{a: 2})
-    SystemRegistry.register(100)
-    Process.exit(task, :kill)
-    assert_receive {:system_registry, %{state: %{a: %{^key => %{}}}}}, 50
+  test "can delete all nodes for a process", %{root: root} do
+    SR.transaction
+    |> SR.update([root, :a, :b], 1)
+    |> SR.update([root, :a, :c], 1)
+    |> SR.commit
+
+    assert %{^root => %{a: %{b: 1, c: 1}}} = SR.match(self(), %{root => %{}})
+    SR.delete_all()
+    value = SR.match(self(), :_)
+    assert Map.get(value, root) == %{}
   end
 
-  test "owner can delete keys", %{key: key} do
-    SystemRegistry.update({:state, :a, key}, %{a: 1})
-    assert {:ok, %{state: %{a: %{^key => %{}}}}} =
-      SystemRegistry.delete({:state, :a, key}, [:a])
-  end
-
-  test "cannot delete reserved keys", %{key: key} do
-    update_task({:state, :a, key}, %{a: 1})
-    assert {:error, {:reserved_keys, [:a]}} =
-      SystemRegistry.delete({:state, :a, key}, [:a])
-  end
-
-  test "cannot publish to a strange bucket" do
-    assert {:error, :invalid_scope} =
-      SystemRegistry.update({:invalid, :a, "a"}, %{a: 1})
-  end
-
-  test "receive rate limited", %{key: key} do
-    SystemRegistry.register(250)
-    SystemRegistry.update({:state, :a, key}, %{a: 1})
-    refute_receive {:system_registry, %{state: %{a: %{^key => %{a: 1}}}}}, 300
-    update_task({:state, :a, key}, %{b: 2})
-    assert_receive {:system_registry, %{state: %{a: %{^key => %{a: 1, b: 2}}}}}, 50
-    update_task({:state, :a, key}, %{c: 3})
-    refute_receive {:system_registry, %{state: %{a: %{^key => %{a: 1, b: 2, c: 3}}}}}, 50
-    assert_receive {:system_registry, %{state: %{a: %{^key => %{a: 1, b: 2, c: 3}}}}}, 250
-  end
-
-  defp update_task(scope, value) do
-    parent = self()
-    {:ok, task} =
-      Task.start(fn ->
-        send(parent, SystemRegistry.update(scope, value))
-        Process.sleep(:infinity)
-      end)
-    assert_receive {:ok, global}
-    {global, task}
-  end
 
 end

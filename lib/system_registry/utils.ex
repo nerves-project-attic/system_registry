@@ -1,11 +1,11 @@
 defmodule SystemRegistry.Utils do
   @moduledoc false
-  
-  alias SystemRegistry.Binding,   as: B
-  alias SystemRegistry.State,     as: S
+
+  alias SystemRegistry.Storage.Registration,   as: R
+  alias SystemRegistry.Storage.State,     as: S
 
   def strip(values) do
-    Enum.map(values, fn({_, result}) -> result end)
+    (Enum.map(values, fn({_, result}) -> result end) |> List.first) || []
   end
 
   def deep_merge(left, right) do
@@ -26,18 +26,7 @@ defmodule SystemRegistry.Utils do
   end
 
   def global do
-    Registry.lookup(S, :global) |> strip |> List.first
-  end
-
-  def registered?(from) do
-    Registry.match(B, :registrations, {from, :_}) != []
-  end
-
-  def scope_map(scope, value) do
-    scope
-    |> Tuple.to_list()
-    |> Enum.reverse
-    |> Enum.reduce(value, &Map.put(%{}, &1, &2))
+    Registry.lookup(S, :global) |> strip
   end
 
 end

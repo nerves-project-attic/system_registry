@@ -8,23 +8,26 @@ defmodule SystemRegistry.Application do
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
+    registries =
+      Enum.map([Registration, Binding, State], fn(reg) ->
+        reg = Module.concat(SystemRegistry.Storage, reg)
+        reg_sup = Module.concat(reg, Supervisor)
+        supervisor(Registry, [:unique, reg,
+          [partitions: System.schedulers_online]],
+          [id: reg_sup])
+      end)
     # Define workers and child supervisors to be supervised
-    children = [
-      supervisor(Registry, [:unique, SystemRegistry.Registration,
-        [partitions: System.schedulers_online]],
-        [id: SystemRegistry.Registration.Supervisor]),
-      supervisor(Registry, [:unique, SystemRegistry.Binding,
-        [partitions: System.schedulers_online]],
-        [id: SystemRegistry.Binding.Supervisor]),
-      supervisor(Registry, [:unique, SystemRegistry.State,
-        [partitions: System.schedulers_online]],
-        [id: SystemRegistry.State.Supervisor]),
-      worker(SystemRegistry.Server, [])
+    workers = [
+      worker(SystemRegistry.Local, []),
+      worker(SystemRegistry.Global, []),
+      worker(SystemRegistry.Registration, []),
+      worker(SystemRegistry.Processor.State, []),
+      worker(SystemRegistry.Processor.Config, []),
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: SystemRegistry.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(registries ++ workers, opts)
   end
 end
