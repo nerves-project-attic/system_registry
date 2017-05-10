@@ -1,6 +1,6 @@
 # SystemRegistry
 
-Local, serial and nested term storage and dispatch registry.
+Local, serial, nested term storage and dispatch registry.
 
 ## Installation
 
