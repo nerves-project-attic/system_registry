@@ -56,4 +56,12 @@ defmodule SystemRegistry.RegistrationTest do
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 50)
   end
 
+  test "rate limit of 0 should dispatch every message", %{root: root} do
+    SR.register(0)
+    SR.update([],  %{state: %{root => %{a: 1}}})
+    assert_received({:system_registry, :global, %{state: %{^root => %{a: 1}}}})
+    SR.update([],  %{state: %{root => %{a: 2}}})
+    assert_received({:system_registry, :global, %{state: %{^root => %{a: 2}}}})
+  end
+
 end

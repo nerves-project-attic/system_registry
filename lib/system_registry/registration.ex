@@ -114,8 +114,12 @@ defmodule SystemRegistry.Registration do
   # Private
 
   defp rate_limit(%__MODULE__{} = reg) do
-    Process.send_after(self(), {:limit_expired, reg}, reg.opts)
-    %{reg | limited: true, stale: false}
+    case reg.opts do
+      0 -> reg
+      interval ->
+        Process.send_after(self(), {:limit_expired, reg}, reg.opts)
+        %{reg | limited: true, stale: false}
+    end
   end
 
   defp notify_reg(%__MODULE__{pid: pid} = reg, key, value) do
