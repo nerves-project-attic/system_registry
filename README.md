@@ -48,7 +48,7 @@ Deleting data from the registry operates in a similar fashion. Calling delete wi
 {:ok, {%{a: 1}, %{}}} = SystemRegistry.update([:a], 1)
 {:ok, %{}} = SystemRegistry.delete([:a])
 
-{:ok, {%{a: %{b: %{c: 1}}}, %{}}}SystemRegistry.update([:a, :b, :c], 1)
+{:ok, {%{a: %{b: %{c: 1}}}, %{}}} = SystemRegistry.update([:a, :b, :c], 1)
 {:ok, %{}} = SystemRegistry.delete([:a, :b, :c])
 ```
 
@@ -94,11 +94,13 @@ config :system_registry, SystemRegistry.Processor.State,
 
 ### Dispatch API
 
-You can register and unregister to the SystemRegistry to receive messages when the contents of the registry change. Registrations default to to the `:global` fragment, but you can change this by passing in a different key such as a pid to access another processes fragment. You will receive the current value for the fragment upon registering to the key.
+Registrants are rate limited in order to apply load shedding. When writing code that react to changes in global state, receiving every message is typically not important. Lets say we have a process that performs an expensive operation when a certain chunk of state is modified. If the process contributing the state were to flap 100 times in a second, and we have a rate limited consumer set to 1500ms the consumer would receive the initial message, and at rate limit expiration, the current state.
+
+You can register and unregister to the SystemRegistry to receive messages when the contents of the registry change. Registrations default to to the `:global` fragment, but you can change this by passing in a different key such as a pid to access another processes fragment. Registrants are rate limited and require that you pass an interval. Upon registration, the caller will receive the current value of the key.
 
 ```elixir
 {:ok, %{state: %{a: 1}}} = SystemRegistry.update([:state, :a], 1)
-SystemRegistry.register()
+SystemRegistry.register(1000)
 SystemRegistry.update([:state, :b], 2)
 ## flush()
 # {:system_registry, :global, %{state: %{a: 1, b: 2}}}
@@ -106,4 +108,22 @@ SystemRegistry.unregister()
 SystemRegistry.update([:state, :b], 3)
 ## flush()
 #
+```
+
+How rate limiting works
+
+```elixir
+{:ok, %{state: %{a: 1}}} = SystemRegistry.update([:state, :a], 1)
+SystemRegistry.register(1000)
+SystemRegistry.update([:state, :b], 2)
+SystemRegistry.update([:state, :b], 3)
+SystemRegistry.update([:state, :b], 4)
+## flush()
+# {:system_registry, :global, %{state: %{a: 1, b: 2}}}
+
+# After 1000ms
+
+## flush()
+# {:system_registry, :global, %{state: %{a: 1, b: 4}}}
+
 ```
