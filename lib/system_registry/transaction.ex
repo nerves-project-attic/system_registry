@@ -2,7 +2,6 @@ defmodule SystemRegistry.Transaction do
   @moduledoc false
   defstruct [pid: nil, nodes: [], updates: [], deletes: []]
 
-  alias __MODULE__
   alias SystemRegistry.Node
   alias SystemRegistry.Storage.State, as: S
   alias SystemRegistry.Storage.Binding, as: B

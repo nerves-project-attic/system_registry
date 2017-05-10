@@ -37,6 +37,4 @@ defmodule SystemRegistry.Global do
     {:reply, reply, s}
   end
 
-  defp delta({a, a}), do: :noop
-  defp delta()
 end

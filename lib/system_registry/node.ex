@@ -9,8 +9,8 @@ defmodule SystemRegistry.Node do
   ]
 
   def parent(node) do
-    [l | inodes] = Enum.reverse(node)
-    parent = Enum.reverse(inodes)
+    [_l | inodes] = Enum.reverse(node)
+    Enum.reverse(inodes)
   end
 
   def leaf(node) do

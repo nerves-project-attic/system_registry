@@ -51,7 +51,7 @@
     updates = Map.put(%{}, mount, updates)
     case Global.apply_updates(updates) do
       {_, _} -> true
-      error -> false
+      _error -> false
     end
   end
 
@@ -59,7 +59,7 @@
   def apply_deletes(deletes) do
     case Global.apply_deletes(deletes) do
       {:ok, _} -> true
-      error -> false
+      _error -> false
     end
   end
 end

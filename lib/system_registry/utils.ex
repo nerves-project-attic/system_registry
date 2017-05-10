@@ -1,7 +1,6 @@
 defmodule SystemRegistry.Utils do
   @moduledoc false
 
-  alias SystemRegistry.Storage.Registration,   as: R
   alias SystemRegistry.Storage.State,     as: S
 
   def strip(values) do
