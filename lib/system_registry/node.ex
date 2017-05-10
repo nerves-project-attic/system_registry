@@ -19,24 +19,15 @@ defmodule SystemRegistry.Node do
     %__MODULE__{parent: parent, node: node, key: l, from: self()}
   end
 
-  # If someone knows how to handle this better, please, do!
-  def leaf_nodes(map, _ \\ []) do
-      {:ok, agent} = Agent.start_link(fn -> [] end)
-      leaf_nodes(map, [], agent)
-      value =
-        Agent.get(agent, & &1)
-        |> Enum.reverse
-      Agent.stop(agent)
-      value
+  def leaf_nodes(map) do
+    leaf_nodes([], map)
   end
-  def leaf_nodes(map, path, agent) when is_map(map) do
-    Enum.reduce(map, [], fn
-      ({k, v}, acc) -> [leaf_nodes(v, [k | path], agent) | acc]
-    end)
+  defp leaf_nodes(pred, map) when not is_map(map) do
+    [Enum.reverse(pred)]
   end
-  def leaf_nodes(_value, path, agent) do
-    path =  Enum.reverse(path)
-    Agent.update(agent, &[path | &1])
+  defp leaf_nodes(pred, map) do
+    Enum.flat_map(map, fn
+      {k,v} -> leaf_nodes([k | pred], v) end)
   end
 
   def trim_tree(value, []), do: value
