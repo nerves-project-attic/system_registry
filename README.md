@@ -1,6 +1,6 @@
 # SystemRegistry
 
-Eventually consistent global state and configuration registry with rate limiting.
+Local, serial and nested term storage and dispatch registry.
 
 ## Installation
 
@@ -8,88 +8,102 @@ The package can be installed by adding `system_registry` to your list of depende
 
 ```elixir
 def deps do
-  [{:system_registry, "~> 0.1.0"}]
+  [{:system_registry, github: "mobileoverlord/system_registry"}]
 end
 ```
 
 ## Usage
 
-**Scopes and Values**
-SystemRegistry stores data in a single chunk, but the ownership of values are
-assigned by scopes.
+SystemRegistry is a serial nested term storage and dispatch system. It takes a different approach to typical event sourcing patterns by focusing on data instead of events. SystemRegistry is local and serial to eliminate race conditions and eventually consistent by rate limiting consumers.
 
-A scope is defined as:
-`{bucket :: :state | :config, type :: atom, subtype :: term}`
 
-At the end of the scope is a map of values. For example lets say we have the scope `{:state, :network_interface, "eth0"}` with a value of `{address: "192.168.1.100"}`
+### Storage API
 
-This would expand into the global as:
+Data in SystemRegistry is stored in a map and represented as a tree of nodes. In order to perform operations on the registry data, you must pass a scope and a value.
+
+Lets say we want to store a key `:a` with the value 1
+
 ```elixir
-%{state:
-  %{network_interface:
-    %{"eth0" =>
-      %{address: "192.168.1.100"}
-    }
-  }
-}
+{:ok, {%{a: 1}, %{}}} = SystemRegistry.update([:a], 1)
 ```
 
-**Ownership and Permissions**
-
-Ownership is applied to the top level keys of the value map to the pid of the process who inserted the keys. If the process owner dies, their keys and values in all scopes are deleted from the global registry.
-
-Buckets have different permissions:
-  `:state` - Values can only be updated / deleted by the owner
-  `:config` - Values can be updated by anyone, but only deleted by the owner.
-
-In the following example, the key `:address` is being inserted for the first time:
+Calls to update will return a 2 tuple delta in the form of `{new, old}`. Updates will either create keys or replace their value.
 
 ```elixir
-SystemRegistry.update({:state, :network_interface, "eth0"}, %{address: "192.168.1.100"})
+{:ok, {%{a: 1}, %{}}} = SystemRegistry.update([:a], 1)
+{:ok, {%{a: 2}, %{a: 1}}} = SystemRegistry.update([:a], 2)
 ```
 
-If another process were to try to update the value of the `:address` key in this scope they would receive `{:error, {:reserved_keys, [:address]}}`
+At any time you can call `match/1` to fetch the current value for a match_spec in the registry.
 
-
-Owners can delete keys using `delete/2`. Lets take the following global state where we want to delete the `:address` key
-
-`%{state: %{network_interface: %{"eth0" => "192.168.1.100"}}}`
-
-Example:
 ```elixir
-SystemRegistry.delete({:state, :network_interface, "eth0"}, [:address])
+SystemRegistry.update([:a], 1)
+%{a: 1} = SystemRegistry.match(%{a: :_})
+%{} = SystemRegistry.match(%{b: :_})
 ```
 
-### Consumers
+Deleting data from the registry operates in a similar fashion. Calling delete will return the current state and recursively trim the tree if intermediate nodes are no longer associated to a value.
 
-SystemRegistry notifications are rate limited at an interval and will become
-eventually consistent. The concept is counter to typical event sourcing where
-every event matters. SystemRegistry is different because its interested in delivering state and not events. Rate limiting is applied as a means of load shedding.
-
-Lets take the following example.
-We have a network interface that goes up and down 100 times in second. In a traditional event sourcing mechanism, we would receive 100 interspersed up/down messages. Lets say every time we have an up event, we perform an expensive network operation that blocks. In this situation, the mailbox would start to fill and load shedding would be difficult.
-
-With SystemRegistry, rate limiting will eventually coalesce the flapping messages during the time when the consumer is being rate limited. At the expiration, the current state is delivered to the consumer.
-
-**Registering and Unregistering**
-
-Processes can register to SystemRegistry to receive global state updates.
-
-Registering requires that you pass a rate limiting interval.
 ```elixir
-SystemRegistry.register(10_000)
+{:ok, {%{a: 1}, %{}}} = SystemRegistry.update([:a], 1)
+{:ok, %{}} = SystemRegistry.delete([:a])
+
+{:ok, {%{a: %{b: %{c: 1}}}, %{}}}SystemRegistry.update([:a, :b, :c], 1)
+{:ok, %{}} = SystemRegistry.delete([:a, :b, :c])
 ```
 
-You can unregister
+SystemRegistry operates off the principals of the node tree is represented as nested maps. This means that if the value of a scope is a map, it is recursively expanded into scopes.
+
 ```elixir
+{:ok, {%{a: %{b: 1}}, %{}}} = SystemRegistry.update([:a], %{b: 1})
+```
+
+#### Transactions
+
+Transactions let you compose update and delete functions so they are executed all at once. Under the hood, `update/2` and `delete/2` create a transaction with a single update / delete call. Lets see how to chain things together so they execute at once.
+
+```elixir
+{:ok, {%{a: 1, b: 2}, %{}}} =
+  SystemRegistry.transaction
+  |> SystemRegistry.update([:a], 1)
+  |> SystemRegistry.update([:b], 2)
+  |> SystemRegistry.commit
+```
+
+#### Processors
+
+Processors are workers that can perform operations based off transactions. SystemRegistry ships with a default processor, `State`. Processors implement the Processor behaviour and have the capability of being notified on transaction validation and commit.
+
+**Global State Processor**
+
+The state processor monitors transactions for any who are writing values un the the top level scope `%{state: _}`. In addition to the caller fragment, these transactions are validated and committed to the `:global` fragment. Since this performs a deep merge, validation will fail if two processes attempt to overwrite another process's keys.
+
+For example:
+```elixir
+Task.start(fn -> SR.update([:state, :a], 1))
+{:error, {SystemRegistry.Processor.State, {:reserved_keys, [:a]}}} =
+  SystemRegistry.update([:state, :a], 2)
+```
+
+The mount point for the state processor defaults to `:state` but can be configured in your application config.
+
+```elixir
+config :system_registry, SystemRegistry.Processor.State,
+  mount: :somewhere_else
+```
+
+### Dispatch API
+
+You can register and unregister to the SystemRegistry to receive messages when the contents of the registry change. Registrations default to to the `:global` fragment, but you can change this by passing in a different key such as a pid to access another processes fragment. You will receive the current value for the fragment upon registering to the key.
+
+```elixir
+{:ok, %{state: %{a: 1}}} = SystemRegistry.update([:state, :a], 1)
+SystemRegistry.register()
+SystemRegistry.update([:state, :b], 2)
+## flush()
+# {:system_registry, :global, %{state: %{a: 1, b: 2}}}
 SystemRegistry.unregister()
+SystemRegistry.update([:state, :b], 3)
+## flush()
+#
 ```
-
-**Consuming Messages**
-
-SystemRegistry will send the registered process a message in the following format.
-`{:system_registry, global :: map}`
-
-For example, if the network interface at eth0 updates the address, registrants would receive:
-
-`{:system_registry, %{state: %{network_interface: %{"eth0" => "192.168.1.100"}}}}`
