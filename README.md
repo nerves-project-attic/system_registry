@@ -107,7 +107,16 @@ The `Config` processor monitors transactions for any that are writing values to 
 Values in the config scope can be written to by any process with a valid transaction.
 
 
-It validates that the transaction option `:priority` is set to a value form the application configuration.
+It validates that the transaction option `:priority` is set to a value form the application configuration. Options can be passed in when starting a transaction, or when using `update` / `delete` directly.
+
+```elixir
+# Pass as options
+SystemRegistry.update([:config, root, :a], 1, priority: :pa)
+# Or
+SystemRegistry.transaction(priority: :pa)
+|> SystemRegistry.update([:config, root, :a], 1)
+|> SystemRegistry.commit
+```
 
 First you must declare an ordered list of scope names in your application config.
 
