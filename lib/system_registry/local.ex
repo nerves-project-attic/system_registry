@@ -49,7 +49,7 @@ defmodule SystemRegistry.Local do
     |> strip()
 
     t = Transaction.begin
-    %{t | pid: pid}
+    %{t | pid: pid, key: pid}
     |> Transaction.delete(frag)
     |> commit(s)
   end

@@ -13,8 +13,8 @@ defmodule SystemRegistry.Node do
 
   import SystemRegistry.Utils
 
-  def binding(scope) do
-    case Registry.lookup(B, scope) do
+  def binding(key, scope) do
+    case Registry.lookup(B, {key, scope}) do
       [] -> nil
       binding -> strip(binding)
     end
@@ -69,7 +69,7 @@ defmodule SystemRegistry.Node do
           _ ->
             [key | u_path] = Enum.reverse(path)
             u_path = Enum.reverse(u_path)
-            Transaction.remove_binding({bind_key, path})
+            Transaction.remove_binding(bind_key, path)
             update_in(value, u_path, &Map.delete(&1, key))
             |> trim_tree(u_path, bind_key)
         end

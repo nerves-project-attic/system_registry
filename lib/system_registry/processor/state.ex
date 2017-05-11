@@ -3,8 +3,7 @@
 
   @mount :state
 
-  alias SystemRegistry.Storage.Binding, as: B
-  alias SystemRegistry.{Transaction, Global, Registration}
+  alias SystemRegistry.{Transaction, Global, Registration, Node}
 
   def init(opts) do
     mount = opts[:mount] || @mount
@@ -21,10 +20,10 @@
     {_, _, reserved} =
       (update_nodes ++ delete_nodes)
       |> Enum.reduce({[], [], []}, fn(n, {free, owner, reserved}) ->
-        case Registry.lookup(B, {:global, n.node}) do
-          [] -> {[n.node | free], owner, reserved}
-          [{_, %{from: nil}}] -> {[n.node | free], owner, reserved}
-          [{_, %{from: ^pid}}] -> {free, [n.node | owner], reserved}
+        case Node.binding(:global, n.node) do
+          nil -> {[n.node | free], owner, reserved}
+          %{from: nil} -> {[n.node | free], owner, reserved}
+          %{from: ^pid} -> {free, [n.node | owner], reserved}
           _ -> {free, owner, [n.node | reserved]}
         end
       end)

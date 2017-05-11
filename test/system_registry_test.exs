@@ -27,16 +27,16 @@ defmodule SystemRegistryTest do
 
   test "local transaction commit", %{root: root} do
     update = %{root => %{a: 1}}
-    SR.update([], update)
+    {:ok, _} = SR.update([], update)
     assert ^update = SR.match(self(), update)
 
-    SR.delete([root, :a])
+    {:ok, _} = SR.delete([root, :a])
     assert %{} == SR.match(self(), :_)
   end
 
   test "match specs", %{root: root} do
     update = %{root => %{a: 1}}
-    SR.update([], update)
+    {:ok, _} = SR.update([], update)
     assert ^update = SR.match(self(), update)
     assert %{} == SR.match(self(), %{blah: %{}})
   end
@@ -48,18 +48,18 @@ defmodule SystemRegistryTest do
     |> SR.commit
 
     assert %{^root => %{a: %{b: 1, c: 1}}} = SR.match(self(), %{root => %{}})
-    SR.delete_all()
+    {:ok, _} = SR.delete_all()
     value = SR.match(self(), :_)
     assert Map.get(value, root) == nil
   end
 
   test "delete nodes", %{root: root} do
-    SR.update([root, :a], 1)
-    SR.delete([root, :a])
+    {:ok, _} = SR.update([root, :a], 1)
+    {:ok, _} = SR.delete([root, :a])
     assert SR.match(self(), %{root => :_}) == %{}
 
-    SR.update([root, :a, :b], 1)
-    SR.delete([root, :a])
+    {:ok, _} = SR.update([root, :a, :b], 1)
+    {:ok, _} = SR.delete([root, :a])
     assert SR.match(self(), %{root => :_}) == %{}
   end
 
@@ -73,23 +73,23 @@ defmodule SystemRegistryTest do
     # end)
     # Task.await(task)
     self = self()
-    assert Node.binding({self, scope}) == nil
+    assert Node.binding(self, scope) == nil
     assert {:ok, _} = SR.update([root, :a], 1)
-    assert %{from: ^self} = Node.binding({self, scope})
+    assert %{from: ^self} = Node.binding(self, scope)
   end
 
   test "nodes can be deleted from a internal node", %{root: root} do
     leaf_scope = [root, :a, :b]
     inter_scope = [root, :a]
 
-    SR.update(leaf_scope, 1)
+    {:ok, _} = SR.update(leaf_scope, 1)
 
     self = self()
-    assert %{from: ^self} = Node.binding({self, leaf_scope})
-    assert %{from: nil} = Node.binding({self, inter_scope})
-    SR.delete(inter_scope)
-    assert Node.binding({self, leaf_scope}) == nil
-    assert Node.binding({self, inter_scope}) == nil
+    assert %{from: ^self} = Node.binding(self, leaf_scope)
+    assert %{from: nil} = Node.binding(self, inter_scope)
+    {:ok, _} = SR.delete(inter_scope)
+    assert Node.binding(self, leaf_scope) == nil
+    assert Node.binding(self, inter_scope) == nil
   end
 
 end

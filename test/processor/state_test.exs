@@ -10,7 +10,7 @@ defmodule SystemRegistry.Processor.StateTest do
   test "state processor updates global", %{root: root} do
     scope = [:state, root, :a]
     value = 1
-    SR.update(scope, value)
+    {:ok, _} = SR.update(scope, value)
     assert ^value =
       SR.match(:global, :_)
       |> get_in(scope)

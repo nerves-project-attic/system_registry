@@ -1,6 +1,7 @@
 defmodule SystemRegistry.Transaction do
   @moduledoc false
-  defstruct [pid: nil, delete_nodes: nil, update_nodes: nil, updates: [], deletes: []]
+  defstruct [pid: nil, key: nil,
+    delete_nodes: nil, update_nodes: nil, updates: [], deletes: []]
 
   alias SystemRegistry.Node
   alias SystemRegistry.Storage.State, as: S
@@ -10,15 +11,17 @@ defmodule SystemRegistry.Transaction do
 
   @type t :: %__MODULE__{
     pid: pid,
+    key: term,
     update_nodes: MapSet.t,
     delete_nodes: MapSet.t,
     updates:  map,
     deletes:  MapSet.t
   }
 
-  def begin do
+  def begin() do
     %__MODULE__{
       pid: self(),
+      key: self(),
       updates: %{},
       deletes: MapSet.new,
       update_nodes: MapSet.new,
@@ -62,12 +65,12 @@ defmodule SystemRegistry.Transaction do
   def prepare(%__MODULE__{pid: pid} = t) do
     delete_nodes =
       Enum.reduce(t.delete_nodes, MapSet.new, fn(node, acc) ->
-        node = Registry.lookup(B, {t.pid, node.node}) |> strip()
+        node = Registry.lookup(B, {t.key, node.node}) |> strip()
         if Node.is_leaf?(node) do
           MapSet.put(acc, node)
         else
           scope = scope(node.node, %{})
-          scope = Registry.match(S, t.pid, scope) |> strip()
+          scope = Registry.match(S, t.key, scope) |> strip()
           leaf_nodes = Node.leaf_nodes(scope)
           Enum.reduce(leaf_nodes, MapSet.new, fn
             (scope, acc) ->
@@ -83,18 +86,18 @@ defmodule SystemRegistry.Transaction do
   end
 
   def commit(%__MODULE__{} = t) do
-    Registry.register(S, t.pid, %{})
+    Registry.register(S, t.key, %{})
     delta =
-      Registry.update_value(S, t.pid, fn(value) ->
+      Registry.update_value(S, t.key, fn(value) ->
         value
         |> apply_updates(t.updates)
-        |> apply_deletes(t.deletes, t.pid)
+        |> apply_deletes(t.deletes, t.key)
       end)
     case delta do
       :error -> {:error, :update_local}
       delta ->
-        apply_bindings(t.pid, t.update_nodes)
-        remove_bindings(t.pid, t.delete_nodes)
+        apply_bindings(t.key, t.update_nodes)
+        remove_bindings(t.key, t.delete_nodes)
         {:ok, delta}
     end
   end
@@ -104,11 +107,11 @@ defmodule SystemRegistry.Transaction do
   end
 
   def remove_bindings(key, nodes) do
-    Enum.map(nodes, &remove_binding({key, &1.node}))
+    Enum.map(nodes, &remove_binding(key, &1.node))
   end
 
-  def remove_binding(path) do
-    Registry.unregister(B, path)
+  def remove_binding(key, path) do
+    Registry.unregister(B, {key, path})
   end
 
   def apply_updates(value, updates) do
@@ -119,7 +122,7 @@ defmodule SystemRegistry.Transaction do
     Enum.reduce(deletes, value, fn
       (%Node{parent: [], key: key}, value) ->
         Map.delete(value, key)
-        remove_binding({bind_key, [key]})
+        remove_binding(bind_key, [key])
       (%Node{parent: path, key: key}, value) ->
         update_in(value, path, &Map.delete(&1, key))
         |> Node.trim_tree(path, bind_key)
