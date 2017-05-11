@@ -15,9 +15,9 @@ defmodule SystemRegistry do
   Returns a transaction struct to pass to update/3 and delete/4 to chain
   modifications to to group. Prevents notifying registrants for each action.
   """
-  @type transaction :: Transaction.t
-  def transaction() do
-    Transaction.begin
+  @spec transaction(tag :: term) :: Transaction.t
+  def transaction(tag) do
+    Transaction.begin(tag)
   end
 
   @doc """
@@ -32,36 +32,36 @@ defmodule SystemRegistry do
   @doc """
     Execute an transaction to insert or modify state, or config
   """
-  @spec update(scope :: tuple, value :: term) ::
+  @spec update(Transaction.t | tag :: term, scope :: tuple, value :: term) ::
     {:ok, map} | {:error, term}
-  def update(scope, value) do
-    transaction()
+  def update(%Transaction{} = t, scope, value) do
+    Transaction.update(t, scope, value)
+  end
+
+  def update(tag, scope, value) do
+    transaction(tag)
     |> update(scope, value)
     |> commit()
   end
 
-  @spec update(Transaction.t, scope :: tuple, value :: term) ::
-    {:ok, map} | {:error, term}
-  def update(transaction, scope, value) do
-    Transaction.update(transaction, scope, value)
-  end
+
 
   @doc """
     Execute an transaction to delete keys
   """
-  @spec delete(scope) ::
+  @spec delete(Transaction.t | tag :: term, scope) ::
     {:ok, map} | {:error, term}
-  def delete(scope) do
-    transaction()
+  def delete(%Transaction{} = t, scope) do
+    Transaction.delete(t, scope)
+  end
+
+  def delete(tag, scope) do
+    transaction(tag)
     |> delete(scope)
     |> commit()
   end
 
-  @spec delete(Transaction.t, scope) ::
-    {:ok, map} | {:error, term}
-  def delete(transaction, scope) do
-    Transaction.delete(transaction, scope)
-  end
+
 
   @doc """
   Delete all keys owned by the calling process

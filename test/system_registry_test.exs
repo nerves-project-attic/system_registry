@@ -11,7 +11,7 @@ defmodule SystemRegistryTest do
 
   test "maps are transformed into composed transactions", %{root: root} do
     t =
-      SR.transaction()
+      SR.transaction(:test)
       |> SR.update([root], %{b: 1, c: 2})
 
     parent = %Node{parent: [], node: [root], from: nil, key: root}
@@ -27,22 +27,22 @@ defmodule SystemRegistryTest do
 
   test "local transaction commit", %{root: root} do
     update = %{root => %{a: 1}}
-    {:ok, _} = SR.update([], update)
+    {:ok, _} = SR.update(:test, [], update)
     assert ^update = SR.match(self(), update)
 
-    {:ok, _} = SR.delete([root, :a])
+    {:ok, _} = SR.delete(:test, [root, :a])
     assert %{} == SR.match(self(), :_)
   end
 
   test "match specs", %{root: root} do
     update = %{root => %{a: 1}}
-    {:ok, _} = SR.update([], update)
+    {:ok, _} = SR.update(:test, [], update)
     assert ^update = SR.match(self(), update)
     assert %{} == SR.match(self(), %{blah: %{}})
   end
 
   test "can delete all nodes for a process", %{root: root} do
-    SR.transaction
+    SR.transaction(:test)
     |> SR.update([root, :a, :b], 1)
     |> SR.update([root, :a, :c], 1)
     |> SR.commit
@@ -54,12 +54,12 @@ defmodule SystemRegistryTest do
   end
 
   test "delete nodes", %{root: root} do
-    {:ok, _} = SR.update([root, :a], 1)
-    {:ok, _} = SR.delete([root, :a])
+    {:ok, _} = SR.update(:test, [root, :a], 1)
+    {:ok, _} = SR.delete(:test, [root, :a])
     assert SR.match(self(), %{root => :_}) == %{}
 
-    {:ok, _} = SR.update([root, :a, :b], 1)
-    {:ok, _} = SR.delete([root, :a])
+    {:ok, _} = SR.update(:test, [root, :a, :b], 1)
+    {:ok, _} = SR.delete(:test, [root, :a])
     assert SR.match(self(), %{root => :_}) == %{}
   end
 
@@ -74,7 +74,7 @@ defmodule SystemRegistryTest do
     # Task.await(task)
     self = self()
     assert Node.binding(self, scope) == nil
-    assert {:ok, _} = SR.update([root, :a], 1)
+    assert {:ok, _} = SR.update(:test, [root, :a], 1)
     assert %{from: ^self} = Node.binding(self, scope)
   end
 
@@ -82,12 +82,12 @@ defmodule SystemRegistryTest do
     leaf_scope = [root, :a, :b]
     inter_scope = [root, :a]
 
-    {:ok, _} = SR.update(leaf_scope, 1)
+    {:ok, _} = SR.update(:test, leaf_scope, 1)
 
     self = self()
     assert %{from: ^self} = Node.binding(self, leaf_scope)
     assert %{from: nil} = Node.binding(self, inter_scope)
-    {:ok, _} = SR.delete(inter_scope)
+    {:ok, _} = SR.delete(:test, inter_scope)
     assert Node.binding(self, leaf_scope) == nil
     assert Node.binding(self, inter_scope) == nil
   end
