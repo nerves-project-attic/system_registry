@@ -48,7 +48,7 @@ defmodule SystemRegistry.Local do
     Registry.lookup(S, pid)
     |> strip()
 
-    t = Transaction.begin
+    t = Transaction.begin()
     %{t | pid: pid, key: pid}
     |> Transaction.delete(frag)
     |> commit(s)

@@ -1,6 +1,6 @@
 defmodule SystemRegistry.Transaction do
   @moduledoc false
-  defstruct [pid: nil, key: nil,
+  defstruct [pid: nil, key: nil, opts: [],
     delete_nodes: nil, update_nodes: nil, updates: [], deletes: []]
 
   alias SystemRegistry.Node
@@ -12,16 +12,18 @@ defmodule SystemRegistry.Transaction do
   @type t :: %__MODULE__{
     pid: pid,
     key: term,
+    opts: keyword(),
     update_nodes: MapSet.t,
     delete_nodes: MapSet.t,
     updates:  map,
     deletes:  MapSet.t
   }
 
-  def begin() do
+  def begin(opts \\ []) do
     %__MODULE__{
       pid: self(),
       key: self(),
+      opts: opts,
       updates: %{},
       deletes: MapSet.new,
       update_nodes: MapSet.new,

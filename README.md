@@ -101,9 +101,37 @@ config :system_registry, SystemRegistry.Processor.State,
   mount: :somewhere_else
 ```
 
+**Global Config Processor**
+
+The `Config` processor monitors transactions for any that are writing values to the top-level `:config` scope.
+Values in the config scope can be written to by any process with a valid transaction.
+
+
+It validates that the transaction option `:priority` is set to a value form the application configuration.
+
+First you must declare an ordered list of scope names in your application config.
+
+```elixir
+config :system_registry, SystemRegistry.Processor.Config,
+priorities: [
+  :pa,
+  :pb,
+  :pc
+  ])
+```
+
+When the global state is returned, it will be the merged result of the state set by each producing process in the priority order defined in the application config. In the example above, `:pa` will take precedence over `:pb` and `:pb` over `:pc` and so on.
+
+The mount point for the `Config` processor defaults to `:config`, but can be configured in your application:
+
+```elixir
+config :system_registry, SystemRegistry.Processor.Config,
+  mount: :somewhere_else
+```
+
 ### Dispatch API
 
-Registrants can be rate-limited to avoid overwhelming them with frequent state changes, while still eventually receving an update of the complete state.
+Registrants can be rate-limited to avoid overwhelming them with frequent state changes, while still eventually receiving an update of the complete state.
 When writing code that reacts to changes in global state, it is often not necessary to process every event.
 For example, let's say we have a process that performs an expensive operation when a certain chunk of state is changed.
 If the process causing the state were to "flap" back and forth between states 100 times in a second, we may only care to react to that change after it is done "flapping".

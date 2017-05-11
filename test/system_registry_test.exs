@@ -42,7 +42,7 @@ defmodule SystemRegistryTest do
   end
 
   test "can delete all nodes for a process", %{root: root} do
-    SR.transaction
+    SR.transaction()
     |> SR.update([root, :a, :b], 1)
     |> SR.update([root, :a, :c], 1)
     |> SR.commit
