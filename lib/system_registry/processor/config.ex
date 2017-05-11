@@ -24,13 +24,14 @@ defmodule SystemRegistry.Processor.Config do
   def handle_validate(%Transaction{} = t, s) do
     updates = updates(t, s.mount)
     deletes = deletes(t, s.mount)
-
+    
+    priority = t.opts[:priority]
     if modified?(updates, deletes) do
-      if t.tag in s.priorities do
+      if priority in s.priorities do
         {:ok, :ok, s}
       else
         {:error,
-          {__MODULE__, "Transaction tag: #{inspect t.tag} not in priorities: #{inspect s.priorities}"}, s}
+          {__MODULE__, "Transaction tag: #{inspect priority} not in priorities: #{inspect s.priorities}"}, s}
       end
     else
       {:ok, :ok, s}
@@ -43,8 +44,9 @@ defmodule SystemRegistry.Processor.Config do
     deletes = deletes(t, s.mount)
 
     if modified?(updates, deletes) do
+      priority = t.opts[:priority]
       Process.monitor(t.pid)
-      producers = [{t.tag, t.pid} | s.producers]
+      producers = [{priority, t.pid} | s.producers]
       s = %{s | producers: producers}
       Global.put(s.mount, merge(s))
       global = SystemRegistry.match(:global, :_)

@@ -15,27 +15,27 @@ defmodule SystemRegistry.Processor.ConfigTest do
   end
 
   test "config processor updates global", %{root: root} do
-    assert {:ok, _} = SR.update(:pa, [:config, root, :a], 1)
+    assert {:ok, _} = SR.update([:config, root, :a], 1, priority: :pa)
     assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
   end
 
   test "config processor orders by priority global", %{root: root} do
-    assert {:ok, _} = SR.update(:pc, [:config, root, :a], 1)
+    assert {:ok, _} = SR.update([:config, root, :a], 1, priority: :pc)
     assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
-    assert {:ok, _} = SR.update(:pb, [:config, root, :a], 2)
+    assert {:ok, _} = SR.update([:config, root, :a], 2, priority: :pb)
     assert %{config: %{^root => %{a: 2}}} = SR.match(%{config: %{root => %{}}})
-    assert {:ok, _} = SR.update(:pa, [:config, root, :b], 3)
+    assert {:ok, _} = SR.update([:config, root, :b], 3, priority: :pa)
     assert %{config: %{^root => %{a: 2, b: 3}}} = SR.match(%{config: %{root => %{}}})
   end
 
   test "config is recalculated when a producer dies", %{root: root} do
-    {_, task} = update_task(:pa, [:config, root, :a], 1)
+    {_, task} = update_task([:config, root, :a], 1, priority: :pa)
     assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
     Process.exit(task, :kill)
   end
 
-  test "return error is transaction tag is not in priorities", %{root: root} do
-    assert {:error, _} = SR.update(:pd, [:config, root, :a], 1)
+  test "return error if transaction priority is not declared in application configuration", %{root: root} do
+    assert {:error, _} = SR.update([:config, root, :a], 1, priority: :pd)
   end
 
   defp update_task(key, scope, value) do

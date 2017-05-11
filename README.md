@@ -101,6 +101,10 @@ config :system_registry, SystemRegistry.Processor.State,
   mount: :somewhere_else
 ```
 
+**Global Config Processor**
+
+
+
 ### Dispatch API
 
 Registrants can be rate-limited to avoid overwhelming them with frequent state changes, while still eventually receving an update of the complete state.
