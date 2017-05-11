@@ -1,5 +1,7 @@
 # SystemRegistry
 
+[![Build Status](https://travis-ci.org/mobileoverlord/system_registry.svg?branch=master)](https://travis-ci.org/mobileoverlord/system_registry)
+
 Local, transactional, nested term storage and dispatch registry.
 
 ## Installation
