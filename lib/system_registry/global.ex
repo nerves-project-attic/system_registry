@@ -8,12 +8,12 @@ defmodule SystemRegistry.Global do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  def apply_updates(updates) do
-    GenServer.call(__MODULE__, {:update, updates})
+  def apply_updates(updates, nodes) do
+    GenServer.call(__MODULE__, {:update, updates, nodes})
   end
 
-  def apply_deletes(deletes) do
-    GenServer.call(__MODULE__, {:delete, deletes})
+  def apply_deletes(deletes, nodes) do
+    GenServer.call(__MODULE__, {:delete, deletes, nodes})
   end
 
   def init(_) do
@@ -21,18 +21,20 @@ defmodule SystemRegistry.Global do
     {:ok, %{}}
   end
 
-  def handle_call({:update, updates}, _, s) do
+  def handle_call({:update, updates, nodes}, _, s) do
     reply =
       Registry.update_value(S, :global, fn(value) ->
+        Transaction.apply_bindings(:global, nodes)
         Transaction.apply_updates(value, updates)
       end)
     {:reply, reply, s}
   end
 
-  def handle_call({:delete, deletes}, _, s) do
+  def handle_call({:delete, deletes, nodes}, _, s) do
     reply =
       Registry.update_value(S, :global, fn(value) ->
-        Transaction.apply_deletes(value, deletes)
+        Transaction.remove_bindings(:global, nodes)
+        Transaction.apply_deletes(value, deletes, :global)
       end)
     {:reply, reply, s}
   end

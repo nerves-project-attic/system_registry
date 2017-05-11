@@ -116,7 +116,7 @@ defmodule SystemRegistry.Registration do
   defp rate_limit(%__MODULE__{} = reg) do
     case reg.opts do
       0 -> reg
-      interval ->
+      _interval ->
         Process.send_after(self(), {:limit_expired, reg}, reg.opts)
         %{reg | limited: true, stale: false}
     end

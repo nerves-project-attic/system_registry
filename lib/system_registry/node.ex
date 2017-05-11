@@ -8,10 +8,25 @@ defmodule SystemRegistry.Node do
     from: pid | nil
   ]
 
+  alias SystemRegistry.Storage.Binding, as: B
+  alias SystemRegistry.Transaction
+
+  import SystemRegistry.Utils
+
+  def binding(scope) do
+    case Registry.lookup(B, scope) do
+      [] -> nil
+      binding -> strip(binding)
+    end
+  end
+
   def parent(node) do
     [_l | inodes] = Enum.reverse(node)
     Enum.reverse(inodes)
   end
+
+  def is_leaf?(%__MODULE__{from: nil}), do: false
+  def is_leaf?(%__MODULE__{}), do: true
 
   def leaf(node) do
     [l | inodes] = Enum.reverse(node)
@@ -44,18 +59,19 @@ defmodule SystemRegistry.Node do
       {k,v} -> leaf_nodes([k | pred], v) end)
   end
 
-  def trim_tree(value, []), do: value
-  def trim_tree(value, [key | t] = path) when is_map(value) do
+  def trim_tree(value, [], _), do: value
+  def trim_tree(value, [key | t] = path, bind_key) when is_map(value) do
     case get_in(value, path) do
       map when map == %{} ->
         case t do
           [] ->
             Map.delete(value, key)
           _ ->
-            [key | path] = Enum.reverse(path)
-            path = Enum.reverse(path)
-            update_in(value, path, &Map.delete(&1, key))
-            |> trim_tree(t)
+            [key | u_path] = Enum.reverse(path)
+            u_path = Enum.reverse(u_path)
+            Transaction.remove_binding({bind_key, path})
+            update_in(value, u_path, &Map.delete(&1, key))
+            |> trim_tree(u_path, bind_key)
         end
       _ -> value
     end
