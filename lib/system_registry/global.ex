@@ -8,6 +8,10 @@ defmodule SystemRegistry.Global do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
+  def put(scope, value) do
+    GenServer.call(__MODULE__, {:put, scope, value})
+  end
+
   def apply_updates(updates, nodes) do
     GenServer.call(__MODULE__, {:update, updates, nodes})
   end
@@ -19,6 +23,17 @@ defmodule SystemRegistry.Global do
   def init(_) do
     Registry.register(S, :global, %{})
     {:ok, %{}}
+  end
+
+  def handle_call({:put, scope, value}, _, s) do
+    reply =
+      Registry.update_value(S, :global, fn(r_value) ->
+        case scope do
+          [_ | _] = scope -> update_in(r_value, scope, value)
+          key -> Map.put(r_value, key, value)
+        end
+      end)
+    {:reply, reply, s}
   end
 
   def handle_call({:update, updates, nodes}, _, s) do

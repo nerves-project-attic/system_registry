@@ -65,4 +65,9 @@ defmodule SystemRegistry.Processor do
       {:error, error, s} -> {:reply, {:error, error}, {mod, s}}
     end
   end
+
+  def handle_info(message, {mod, opts}) do
+    {reply, opts} = mod.handle_info(message, opts)
+    {reply, {mod, opts}}
+  end
 end

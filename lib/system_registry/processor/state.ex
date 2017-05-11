@@ -4,6 +4,7 @@
   @mount :state
 
   alias SystemRegistry.{Transaction, Global, Registration, Node}
+  import SystemRegistry.Processor.Utils
 
   def init(opts) do
     mount = opts[:mount] || @mount
@@ -50,7 +51,7 @@
       global = SystemRegistry.match(:global, :_)
       Registration.notify(:global, global)
     end
-    {:ok, {:ok, modified?}, s}
+    {:ok, :ok, s}
   end
 
   def apply_updates(nil, _, _), do: false
@@ -70,12 +71,5 @@
     end
   end
 
-  def filter_nodes(nodes, mount) do
-    Enum.filter(nodes, fn(node) ->
-      case node.node do
-        [^mount | _] -> true
-        _ -> false
-      end
-    end)
-  end
+
 end
