@@ -36,13 +36,9 @@
 
   def handle_commit(%Transaction{} = t, s) do
     mount = s.mount
-    update_nodes = filter_nodes(t.update_nodes, mount)
-    delete_nodes = filter_nodes(t.delete_nodes, mount)
-    updates = Map.get(t.updates, mount)
-    deletes = Enum.filter(t.deletes, fn
-      [^mount | _] -> true
-      _ -> false
-    end)
+
+    {update_nodes, updates} = updates(t, s.mount)
+    {delete_nodes, deletes} = deletes(t, s.mount)
 
     modified? =
       apply_updates(updates, update_nodes, mount) or apply_deletes(deletes, delete_nodes)

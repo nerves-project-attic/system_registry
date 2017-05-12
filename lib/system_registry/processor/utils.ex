@@ -18,7 +18,7 @@ defmodule SystemRegistry.Processor.Utils do
   def deletes(t, mount) do
     nodes = filter_nodes(t.delete_nodes, mount)
     deletes = Enum.filter(t.deletes, fn
-      [^mount | _] -> true
+      %{node: [^mount | _]} -> true
       _ -> false
     end)
     {nodes, deletes}
