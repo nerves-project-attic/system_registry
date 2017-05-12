@@ -6,7 +6,7 @@ defmodule SystemRegistry.Registration do
   alias SystemRegistry.Storage.State, as: S
   import SystemRegistry.Utils
 
-  defstruct [pid: nil, opts: [], key: nil, limited: false, stale: false]
+  defstruct [pid: nil, opts: [], key: nil, status: :ready, stale: false]
 
   # Public API
 
@@ -24,8 +24,8 @@ defmodule SystemRegistry.Registration do
     end)
   end
 
-  def register(pid \\ nil, key, opts) do
-    GenServer.call(__MODULE__, {:register, (pid || self()), key, opts})
+  def register(pid \\ nil, opts) do
+    GenServer.call(__MODULE__, {:register, (pid || self()), opts})
   end
 
   def unregister(pid \\ nil, key) do
@@ -42,7 +42,8 @@ defmodule SystemRegistry.Registration do
 
   # GenServer API
 
-  def handle_call({:register, pid, key, opts}, _, s) do
+  def handle_call({:register, pid, opts}, _, s) do
+    key = opts[:key] || :global
     reply = Registry.lookup(S, key) |> strip()
     reg = %__MODULE__{pid: pid, opts: opts, key: key}
     Registry.register(R, key, [])
@@ -77,20 +78,32 @@ defmodule SystemRegistry.Registration do
 
   def handle_call({:notify, key, value}, _, s) do
     Registry.update_value(R, key, fn(registrants)->
-      {limited, available} =
+      {limited, ready} =
         registrants
-        |> Enum.split_with(& &1.limited)
+        |> Enum.split_with(& &1.status != :ready)
 
-      available =
-        Enum.map(available, fn(reg) ->
-          notify_reg(reg, key, value)
+      ready =
+        Enum.map(ready, fn(reg) ->
+          hysteresis(reg, key, value)
         end)
 
       limited =
         Enum.map(limited, & %{&1 | stale: true})
-      available ++ limited
+      ready ++ limited
     end)
     {:reply, :ok, s}
+  end
+
+  def handle_info({:hysteresis_expired, %__MODULE__{} = reg}, s) do
+    value = Registry.lookup(S, reg.key) |> strip()
+    notify_reg(reg, reg.key, value)
+    rate_limit(reg)
+    Registry.update_value(R, reg.key, fn(registrants) ->
+      {_reg, registrants} =
+        Enum.split_with(registrants, & &1.pid == reg.pid)
+      [%{reg | status: :limited, stale: false} | registrants]
+    end)
+    {:noreply, s}
   end
 
   def handle_info({:limit_expired, %__MODULE__{} = reg}, s) do
@@ -105,7 +118,7 @@ defmodule SystemRegistry.Registration do
             value = Registry.lookup(S, reg.key) |> strip()
             notify_reg(reg, reg.key, value)
           end
-          [%{reg | limited: false, stale: false} | registrants]
+          [%{reg | status: :ready, stale: false} | registrants]
       end
     end)
     {:noreply, s}
@@ -113,17 +126,29 @@ defmodule SystemRegistry.Registration do
 
   # Private
 
-  defp rate_limit(%__MODULE__{} = reg) do
-    case reg.opts do
-      0 -> reg
-      _interval ->
-        Process.send_after(self(), {:limit_expired, reg}, reg.opts)
-        %{reg | limited: true, stale: false}
+  defp hysteresis(%__MODULE__{} = reg, key, value) do
+    hysteresis = reg.opts[:hysteresis] || 0
+    case hysteresis do
+      0 ->
+        notify_reg(reg, key, value)
+        rate_limit(reg)
+      hysteresis ->
+        Process.send_after(self(), {:hysteresis_expired, reg}, hysteresis)
+        %{reg | status: :hysteresis, stale: true}
     end
   end
 
-  defp notify_reg(%__MODULE__{pid: pid} = reg, key, value) do
+  defp rate_limit(%__MODULE__{} = reg) do
+    min_interval = reg.opts[:min_interval] || 0
+    case min_interval do
+      0 -> reg
+      interval ->
+        Process.send_after(self(), {:limit_expired, reg}, interval)
+        %{reg | status: :min_interval, stale: false}
+    end
+  end
+
+  defp notify_reg(%__MODULE__{pid: pid}, key, value) do
     send(pid, {:system_registry, key, value})
-    rate_limit(reg)
   end
 end

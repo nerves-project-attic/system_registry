@@ -91,12 +91,13 @@ defmodule SystemRegistry do
   @doc """
     Register process to receive notifications
   """
-  @spec register(key :: term, interval :: integer) ::
+  @spec register(opts :: keyword) ::
     {:ok, map} | {:error, term}
-  def register(key \\ :global, interval) do
+  def register(opts \\ []) do
+    key = opts[:key] || :global
     case Registration.registered?(key) do
       true -> {:error, :already_registered}
-      false -> Registration.register(key, interval)
+      false -> Registration.register(opts)
     end
   end
 
@@ -105,7 +106,7 @@ defmodule SystemRegistry do
   """
   @spec unregister(key :: term) ::
     :ok | {:error, term}
-  def unregister(key) do
+  def unregister(key \\ :global) do
     Registration.unregister(key)
   end
 
