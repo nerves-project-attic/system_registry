@@ -30,7 +30,7 @@ defmodule SystemRegistry.Mixfile do
   defp package do
     [maintainers: ["Justin Schneck"],
      licenses: ["Apache 2.0"],
-     links: %{"Github" => "https://github.com/nerves-project/nerves"}]
+     links: %{"Github" => "https://github.com/mobileoverlord/system_registry"}]
   end
 
   # Dependencies can be Hex packages:
