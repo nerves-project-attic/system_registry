@@ -123,8 +123,8 @@ defmodule SystemRegistry.Transaction do
   def apply_deletes(value, deletes, bind_key) do
     Enum.reduce(deletes, value, fn
       (%Node{parent: [], key: key}, value) ->
-        Map.delete(value, key)
         remove_binding(bind_key, [key])
+        Map.delete(value, key)
       (%Node{parent: path, key: key}, value) ->
         update_in(value, path, &Map.delete(&1, key))
         |> Node.trim_tree(path, bind_key)
