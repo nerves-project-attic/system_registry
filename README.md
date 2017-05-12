@@ -144,7 +144,7 @@ Registrants can be rate-limited to avoid overwhelming them with frequent state c
 When writing code that reacts to changes in global state, it is often not necessary to process every event.
 For example, let's say we have a process that performs an expensive operation when a certain chunk of state is changed.
 If the process causing the state were to "flap" back and forth between states 100 times in a second, we may only care to react to that change after it is done "flapping".
-If we set up a consumer with a 1000 ms rate-limit, it would receive the initial message and the final state when the time limit expires.
+If we set up a consumer with a 1000 ms min_interval rate-limit, it would receive the initial message and the final state when the time limit expires. You can also set hysteresis to represent the amount of time the system should wait before sending the current state prior to min_interval. min_interval and hysteresis default to 0.
 
 You can `register` to and `unregister` from the SystemRegistry to receive messages when the contents of the registry change.
 Registrants are rate-limited and require that you pass an interval.
@@ -152,7 +152,7 @@ Upon registration, the caller will receive the current state.
 
 ```elixir
 {:ok, %{state: %{a: 1}}} = SystemRegistry.update([:state, :a], 1)
-SystemRegistry.register(1000)
+SystemRegistry.register(min_interval: 1000)
 
 SystemRegistry.update([:state, :b], 2)
 
@@ -168,17 +168,14 @@ SystemRegistry.update([:state, :b], 3)
 How rate-limiting works
 
 ```elixir
-{:ok, %{state: %{a: 1}}} = SystemRegistry.update([:state, :a], 1)
-SystemRegistry.register(1000)
-
+SystemRegistry.register(hysteresis: 50, min_interval: 1000)
 SystemRegistry.update([:state, :b], 2)
-SystemRegistry.update([:state, :b], 3)
-SystemRegistry.update([:state, :b], 4)
-
+## 50ms later
 ## flush()
 #=> {:system_registry, :global, %{state: %{a: 1, b: 2}}}
-
-# After 1000ms
+SystemRegistry.update([:state, :b], 3)
+SystemRegistry.update([:state, :b], 4)
+## 1000ms later
 ## flush()
-# => {:system_registry, :global, %{state: %{a: 1, b: 4}}}
+#=> {:system_registry, :global, %{state: %{a: 1, b: 2}}}
 ```
