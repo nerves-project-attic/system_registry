@@ -21,7 +21,8 @@ defmodule SystemRegistry.Local do
 
   def init(_opts) do
     {:ok, %{
-      processors: []
+      processors: [],
+      monitors: []
     }}
   end
 
@@ -30,16 +31,19 @@ defmodule SystemRegistry.Local do
   end
 
   def handle_call({:commit, transaction}, _, s) do
-    {:reply, commit(transaction, s), s}
+    {reply, s} = commit(transaction, s)
+    {:reply, reply, s}
   end
 
   def handle_call({:delete_all, pid}, _, s) do
-    {:reply, delete_all(pid, s), s}
+    {reply, s} = delete_all(pid, s)
+    {:reply, reply, s}
   end
 
   def handle_info({:DOWN, _, _, pid, _}, s) do
     Registration.unregister_all(pid)
-    delete_all(pid, s)
+    {_, s} = delete_all(pid, s)
+    s = demonitor(pid, s)
     {:noreply, s}
   end
 
@@ -49,6 +53,7 @@ defmodule SystemRegistry.Local do
     |> strip()
 
     t = Transaction.begin()
+
     %{t | pid: pid, key: pid}
     |> Transaction.delete(frag)
     |> commit(s)
@@ -57,15 +62,32 @@ defmodule SystemRegistry.Local do
   defp commit(%Transaction{pid: pid} = t, s) do
     with             {:ok, t} <- Transaction.prepare(t),
                           :ok <- Processor.call(s.processors, :validate, [t]),
-                            _ <- Process.monitor(pid),
    {:ok, {new, _old} = delta} <- Transaction.commit(t),
+                            s <- monitor(pid, s),
                           :ok <- Registration.notify(pid, new),
                           :ok <- Processor.call(s.processors, :commit, [t]) do
-      {:ok, delta}
+
+
+      {{:ok, delta}, s}
     else
       error ->
-        error
+        {error, s}
     end
   end
 
+  defp monitor(pid, s) do
+    if Enum.any?(s.monitors, fn({m_pid, _ref}) -> m_pid == pid end) do
+      s
+    else
+      monitors = [{pid, Process.monitor(pid)} | s.monitors]
+      %{s | monitors: monitors}
+    end
+  end
+
+  defp demonitor(pid, s) do
+    {[{_, ref}], monitors} =
+      Enum.split_with(s.monitors, fn({m_pid, _}) -> m_pid == pid end)
+    Process.demonitor(ref)
+    %{s | monitors: monitors}
+  end
 end

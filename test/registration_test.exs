@@ -1,10 +1,11 @@
 defmodule SystemRegistry.RegistrationTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
 
   alias SystemRegistry, as: SR
   alias SystemRegistry.Registration
 
   setup ctx do
+    flush(200)
     %{root: ctx.test}
   end
 
@@ -35,14 +36,14 @@ defmodule SystemRegistry.RegistrationTest do
 
   test "local notification delivery", %{root: root} do
     key = self()
-    SR.register(key: key, min_interval: 50)
+    SR.register(key: key)
     update = %{root => %{a: 1}}
     SR.update([], update)
-    assert_received({:system_registry, ^key, ^update})
+    assert_receive({:system_registry, ^key, ^update}, 10)
   end
 
   test "global notification delivery", %{root: root} do
-    SR.register(min_interval: 50)
+    SR.register()
     SR.update([],  %{state: %{root => %{a: 1}}})
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
   end
@@ -53,15 +54,15 @@ defmodule SystemRegistry.RegistrationTest do
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
     SR.update([],  %{state: %{root => %{a: 2}}})
     refute_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 10)
-    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 50)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 80)
   end
 
   test "rate limit of 0 should dispatch every message", %{root: root} do
     SR.register()
     SR.update([],  %{state: %{root => %{a: 1}}})
-    assert_received({:system_registry, :global, %{state: %{^root => %{a: 1}}}})
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
     SR.update([],  %{state: %{root => %{a: 2}}})
-    assert_received({:system_registry, :global, %{state: %{^root => %{a: 2}}}})
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 10)
   end
 
   test "hysteresis opts for rate limiting", %{root: root} do
@@ -74,4 +75,19 @@ defmodule SystemRegistry.RegistrationTest do
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 50)
   end
 
+  test "notifications on update / delete", %{root: root} do
+    SR.register()
+    SR.update([:state, root, :a], 1)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 20)
+    SR.delete([:state, root, :a])
+    assert_receive({:system_registry, :global, %{}}, 20)
+  end
+
+  def flush(ms) do
+    receive do
+      _ -> flush(ms)
+    after
+      ms -> :ok
+    end
+  end
 end

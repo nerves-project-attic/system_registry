@@ -40,10 +40,10 @@
     {update_nodes, updates} = updates(t, s.mount)
     {delete_nodes, deletes} = deletes(t, s.mount)
 
-    modified? =
-      apply_updates(updates, update_nodes, mount) or apply_deletes(deletes, delete_nodes)
+    updated? = apply_updates(updates, update_nodes, mount)
+    deleted? = apply_deletes(deletes, delete_nodes)
 
-    if modified? do
+    if updated? or deleted? do
       global = SystemRegistry.match(:global, :_)
       Registration.notify(:global, global)
     end
@@ -62,7 +62,7 @@
   def apply_deletes([], _), do: false
   def apply_deletes(deletes, nodes) do
     case Global.apply_deletes(deletes, nodes) do
-      {:ok, _} -> true
+      {_, _} -> true
       _error -> false
     end
   end

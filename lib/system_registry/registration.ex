@@ -106,7 +106,7 @@ defmodule SystemRegistry.Registration do
     {:noreply, s}
   end
 
-  def handle_info({:limit_expired, %__MODULE__{} = reg}, s) do
+  def handle_info({:min_interval_expired, %__MODULE__{} = reg}, s) do
     Registry.update_value(R, reg.key, fn(registrants) ->
       {reg, registrants} =
         Enum.split_with(registrants, & &1.pid == reg.pid)
@@ -143,7 +143,7 @@ defmodule SystemRegistry.Registration do
     case min_interval do
       0 -> reg
       interval ->
-        Process.send_after(self(), {:limit_expired, reg}, interval)
+        Process.send_after(self(), {:min_interval_expired, reg}, interval)
         %{reg | status: :min_interval, stale: false}
     end
   end
