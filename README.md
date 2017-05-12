@@ -111,9 +111,9 @@ It validates that the transaction option `:priority` is set to a value form the 
 
 ```elixir
 # Pass as options
-SystemRegistry.update([:config, root, :a], 1, priority: :pa)
+SystemRegistry.update([:config, root, :a], 1, priority: :high)
 # Or
-SystemRegistry.transaction(priority: :pa)
+SystemRegistry.transaction(priority: :high)
 |> SystemRegistry.update([:config, root, :a], 1)
 |> SystemRegistry.commit
 ```
@@ -123,13 +123,13 @@ First you must declare an ordered list of scope names in your application config
 ```elixir
 config :system_registry, SystemRegistry.Processor.Config,
 priorities: [
-  :pa,
-  :pb,
-  :pc
+  :high,
+  :medium,
+  :low
   ])
 ```
 
-When the global state is returned, it will be the merged result of the state set by each producing process in the priority order defined in the application config. In the example above, `:pa` will take precedence over `:pb` and `:pb` over `:pc` and so on.
+When the global state is returned, it will be the merged result of the state set by each producing process in the priority order defined in the application config. In the example above, `:high` will take precedence over `:medium` and `:medium` over `:low` and so on.
 
 The mount point for the `Config` processor defaults to `:config`, but can be configured in your application:
 
