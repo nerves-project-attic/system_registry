@@ -9,6 +9,7 @@ defmodule SystemRegistry.Mixfile do
      start_permanent: Mix.env == :prod,
      description: description(),
      package: package(),
+     docs: docs(),
      deps: deps()]
   end
 
@@ -19,6 +20,11 @@ defmodule SystemRegistry.Mixfile do
     # Specify extra applications you'll use from Erlang/Elixir
     [extra_applications: [:logger],
      mod: {SystemRegistry.Application, []}]
+  end
+
+  defp docs do
+    [extras: ["README.md"],
+     main: "readme"]
   end
 
   defp description do
