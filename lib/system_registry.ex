@@ -1,7 +1,23 @@
 defmodule SystemRegistry do
   @moduledoc """
-  The System Registry is a global storage and dispatch system for state and configuration.
-  Processes can supply state and expose configuration for other processes to query.
+  SystemRegistry is a transactional nested term storage and dispatch system.
+  It takes a different approach to a typical publish-subscribe pattern by
+  focusing on data instead of events. SystemRegistry is local
+  (as opposed to distributed) and transactional (as opposed to asynchronous)
+  to eliminate race conditions. It also supports eventual consistency with
+  rate-limiting consumers that control how often they receive state updates.
+
+  Data in SystemRegistry is stored as a tree of nodes, represented by a
+  nested map. In order to perform operations on the registry data, you specify
+  the scope of the operation as a list of keys to walk to the desired tree node.
+
+  Let's say we want to store a top-level key `:a` with the value `1`.
+  We would call `update/2` like this:
+
+    iex> SystemRegistry.update([:a], 1)
+    {:ok, {%{a: 1}, %{}}}
+
+
   """
 
   @type scope ::
@@ -14,6 +30,11 @@ defmodule SystemRegistry do
   @doc """
   Returns a transaction struct to pass to update/3 and delete/4 to chain
   modifications to to group. Prevents notifying registrants for each action.
+  Example:
+
+    iex> SystemRegistry.transaction |> SystemRegistry.update([:a], 1) |> SystemRegistry.commit
+    {:ok, {%{a: 1}, %{}}}
+
   """
   @spec transaction(opts :: keyword()) :: Transaction.t
   def transaction(opts \\ []) do
@@ -30,7 +51,28 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Execute an transaction to insert or modify state, or config
+    Execute an transaction to insert or modify data.
+
+    Update can be called on its own:
+
+      iex> SystemRegistry.update([:a], 1)
+      {:ok, {%{a: 1}, %{}}}
+
+    Or it can be included as part of a transaction pipeline
+
+      iex> SystemRegistry.transaction |> SystemRegistry.update([:a], 1) |> SystemRegistry.commit
+      {:ok, {%{a: 1}, %{}}}
+
+    Passing a map to update will recursively expand into a transaction
+    for example this:
+
+      iex> SystemRegistry.update([:a], %{b: 1})
+      {:ok, {%{a: %{b: 1}}, %{}}}
+
+    is equivalent to this:
+
+      iex>  SystemRegistry.update([:a, :b], 1)
+      {:ok, {%{a: %{b: 1}}, %{}}}
   """
   @spec update(Transaction.t, scope :: tuple, value :: term) ::
     {:ok, map} | {:error, term}
@@ -48,7 +90,30 @@ defmodule SystemRegistry do
 
 
   @doc """
-    Execute an transaction to delete keys
+    Execute an transaction to delete keys and their values.
+
+    Delete can be called on its own:
+
+      iex> SystemRegistry.update([:a], 1)
+      {:ok, {%{a: 1}, %{}}}
+      iex> SystemRegistry.delete([:a])
+      {:ok, {%{}, %{a: 1}}}
+
+    Or it can be included as part of a transaction pipeline
+
+      iex> SystemRegistry.update([:a], 1)
+      {:ok, {%{a: 1}, %{}}}
+      iex> SystemRegistry.transaction |> SystemRegistry.delete([:a]) |> SystemRegistry.commit
+      {:ok, {%{}, %{a: 1}}}
+
+    If you pass an internal node to delete, it will delete all the keys the process
+    ownes under it.
+
+      iex> SystemRegistry.update([:a, :b], 1)
+      {:ok, {%{a: %{b: 1}}, %{}}}
+      iex> SystemRegistry.delete([:a])
+      {:ok, {%{}, %{a: %{b: 1}}}}
+
   """
   @spec delete(Transaction.t, scope) ::
     {:ok, map} | {:error, term}
@@ -67,7 +132,12 @@ defmodule SystemRegistry do
 
 
   @doc """
-  Delete all keys owned by the calling process
+  Delete all keys owned by the calling process.
+
+    iex> SystemRegistry.update([:a, :b], 1)
+    {:ok, {%{a: %{b: 1}}, %{}}}
+    iex> SystemRegistry.delete_all()
+    {:ok, {%{}, %{a: %{b: 1}}}}
   """
   @spec delete_all(pid) ::
     {:ok, map} | {:error, term}
@@ -76,7 +146,16 @@ defmodule SystemRegistry do
   end
 
   @doc """
-  Query the SystemRegistry using a match spec
+  Query the SystemRegistry using a match spec.
+
+    iex> SystemRegistry.update([:a, :b], 1)
+    {:ok, {%{a: %{b: 1}}, %{}}}
+    iex> SystemRegistry.match(self(), :_)
+    %{a: %{b: 1}}
+    iex> SystemRegistry.match(self(), %{a: %{}})
+    %{a: %{b: 1}}
+    iex> SystemRegistry.match(self(), %{a: %{b: 2}})
+    %{}
   """
   @spec match(key :: term, match_spec :: term) :: map
   def match(key \\ :global, match_spec) do
@@ -89,7 +168,61 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Register process to receive notifications
+    Register process to receive notifications.
+    Registrants are rate-limited and require that you pass an interval.
+    Upon registration, the caller will receive the current state.
+
+    options
+      * `:hysteresis` - Default: 0, The amount of time to wait before delivering the first
+        change message.
+      * `:min_interval` - Default: 0, The minimum amount of time to wait after hysteresis,
+        but before the next message is to be delivered.
+
+    With both options defaulting to , you will receive every message.
+
+    Examples
+
+      iex> SystemRegistry.register()
+      {:ok, %{}}
+      iex> SystemRegistry.update([:state, :a], 1)
+      {:ok, {%{state: %{a: 1}}, %{}}}
+      iex> Process.info(self())[:messages]
+      [{:system_registry, :global, %{state: %{a: 1}}}]
+      iex> SystemRegistry.unregister()
+      :ok
+      iex> receive do
+      ...>   _ -> :ok
+      ...> after
+      ...>   0 -> :ok
+      ...> end
+      :ok
+      iex> SystemRegistry.delete_all()
+      {:ok, {%{}, %{state: %{a: 1}}}}
+      iex> SystemRegistry.register(hysteresis: 10, min_interval: 50)
+      {:ok, %{}}
+      iex> SystemRegistry.update([:state, :a], 1)
+      {:ok, {%{state: %{a: 1}}, %{}}}
+      iex> Process.info(self())[:messages]
+      []
+      iex> :timer.sleep(15)
+      :ok
+      iex> Process.info(self())[:messages]
+      [{:system_registry, :global, %{state: %{a: 1}}}]
+      iex> receive do
+      ...>   _ -> :ok
+      ...> after
+      ...>   0 -> :ok
+      ...> end
+      :ok
+      iex> SystemRegistry.update([:state, :a], 2)
+      {:ok, {%{state: %{a: 2}}, %{state: %{a: 1}}}}
+      iex> Process.info(self())[:messages]
+      []
+      iex> :timer.sleep(50)
+      :ok
+      iex> Process.info(self())[:messages]
+      [{:system_registry, :global, %{state: %{a: 2}}}]
+
   """
   @spec register(opts :: keyword) ::
     {:ok, map} | {:error, term}

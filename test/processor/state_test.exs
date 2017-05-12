@@ -1,6 +1,5 @@
 defmodule SystemRegistry.Processor.StateTest do
-  use ExUnit.Case, async: true
-
+  use ExUnit.Case
   alias SystemRegistry, as: SR
 
   setup ctx do
@@ -23,6 +22,18 @@ defmodule SystemRegistry.Processor.StateTest do
     update = %{state: %{root => %{a: 1}}}
     update_task([], update)
     assert {:error, _} = SR.update([], update)
+  end
+
+  test "owner can delete all from state", %{root: root} do
+    SR.transaction()
+    |> SR.update([:state, root, :a, :b], 1)
+    |> SR.update([:state, root, :a, :c], 1)
+    |> SR.commit
+
+    assert %{state: %{^root => %{a: %{b: 1, c: 1}}}} = SR.match(self(), %{state: %{root => %{}}})
+    {:ok, _} = SR.delete_all()
+    value = SR.match(:_)
+    assert get_in(value, [:state, root]) == nil
   end
 
   defp update_task(scope, value) do

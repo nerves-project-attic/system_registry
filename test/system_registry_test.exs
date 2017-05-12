@@ -1,5 +1,5 @@
 defmodule SystemRegistryTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   doctest SystemRegistry
 
   alias SystemRegistry, as: SR
@@ -65,13 +65,6 @@ defmodule SystemRegistryTest do
 
   test "bindings are removed when owner deletes", %{root: root} do
     scope = [root, :a]
-    # task = Task.async(fn ->
-    #   self = self()
-    #   SR.update(scope, 1)
-    #   assert %{from: ^self} = Node.binding(scope)
-    #   SR.delete(scope)
-    # end)
-    # Task.await(task)
     self = self()
     assert Node.binding(self, scope) == nil
     assert {:ok, _} = SR.update([root, :a], 1)

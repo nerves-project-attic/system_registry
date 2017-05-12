@@ -1,5 +1,5 @@
 defmodule SystemRegistry.RegistrationTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   alias SystemRegistry, as: SR
   alias SystemRegistry.Registration
