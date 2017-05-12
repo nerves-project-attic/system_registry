@@ -7,6 +7,8 @@ defmodule SystemRegistry.Mixfile do
      elixir: "~> 1.4 or ~> 1.5.0-dev",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
+     description: description(),
+     package: package(),
      deps: deps()]
   end
 
@@ -19,6 +21,18 @@ defmodule SystemRegistry.Mixfile do
      mod: {SystemRegistry.Application, []}]
   end
 
+  defp description do
+    """
+    Atomic nested term storage and dispatch registry
+    """
+  end
+
+  defp package do
+    [maintainers: ["Justin Schneck"],
+     licenses: ["Apache 2.0"],
+     links: %{"Github" => "https://github.com/nerves-project/nerves"}]
+  end
+
   # Dependencies can be Hex packages:
   #
   #   {:my_dep, "~> 0.3.0"}
@@ -29,6 +43,6 @@ defmodule SystemRegistry.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [{:ex_doc, "~> 0.15", only: :dev}]
   end
 end
