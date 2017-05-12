@@ -10,7 +10,7 @@ The package can be installed by adding `system_registry` to your list of depende
 
 ```elixir
 def deps do
-  [{:system_registry, github: "mobileoverlord/system_registry"}]
+  [{:system_registry, "~> 0.1"}]
 end
 ```
 
@@ -146,9 +146,7 @@ For example, let's say we have a process that performs an expensive operation wh
 If the process causing the state were to "flap" back and forth between states 100 times in a second, we may only care to react to that change after it is done "flapping".
 If we set up a consumer with a 1000 ms min_interval rate-limit, it would receive the initial message and the final state when the time limit expires. You can also set hysteresis to represent the amount of time the system should wait before sending the current state prior to min_interval. min_interval and hysteresis default to 0.
 
-You can `register` to and `unregister` from the SystemRegistry to receive messages when the contents of the registry change.
-Registrants are rate-limited and require that you pass an interval.
-Upon registration, the caller will receive the current state.
+You can `register` to and `unregister` from the SystemRegistry to receive messages when the contents of the registry change. Upon registration, the caller will receive the current state.
 
 ```elixir
 {:ok, %{state: %{a: 1}}} = SystemRegistry.update([:state, :a], 1)
