@@ -24,6 +24,12 @@ defmodule SystemRegistry.Processor.StateTest do
     assert {:error, _} = SR.update([], update)
   end
 
+  test "failed validation for deleting other owners keys", %{root: root} do
+    update = %{state: %{root => %{a: 1}}}
+    update_task([], update)
+    assert {:error, _} = SR.delete([:state, root, :a])
+  end
+
   test "owner can delete all from state", %{root: root} do
     SR.transaction()
     |> SR.update([:state, root, :a, :b], 1)

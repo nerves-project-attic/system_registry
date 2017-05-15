@@ -13,7 +13,7 @@
   end
 
   def handle_validate(%Transaction{} = t, s) do
-    pid = t.pid
+
     mount = s.mount
     update_nodes = filter_nodes(t.update_nodes, mount)
     delete_nodes = filter_nodes(t.delete_nodes, mount)
@@ -21,7 +21,7 @@
     update_reserved =
       permissions(update_nodes, t.pid)
     delete_reserved =
-      permissions(update_nodes, t.pid)
+      permissions(delete_nodes, t.pid)
 
     global = SystemRegistry.Utils.global
 

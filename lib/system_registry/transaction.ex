@@ -67,21 +67,22 @@ defmodule SystemRegistry.Transaction do
   def prepare(%__MODULE__{pid: pid} = t) do
     delete_nodes =
       Enum.reduce(t.delete_nodes, MapSet.new, fn(node, acc) ->
-        node = Registry.lookup(B, {t.key, node.node}) |> strip()
-        if Node.is_leaf?(node) do
-          MapSet.put(acc, node)
-        else
-          scope = scope(node.node, %{})
-          scope = Registry.match(S, t.key, scope) |> strip()
-          leaf_nodes = Node.leaf_nodes(scope)
-          Enum.reduce(leaf_nodes, MapSet.new, fn
-            (scope, acc) ->
-              node = Registry.lookup(B, {pid, scope}) |> strip()
-              case node do
-                (%{from: ^pid}) -> MapSet.put(acc, node)
-                _ -> acc
-              end
-          end)
+        reg_node = Registry.lookup(B, {t.key, node.node}) |> strip()
+        cond do
+          reg_node == [] -> MapSet.put(acc, node)
+          Node.is_leaf?(reg_node) -> MapSet.put(acc, node)
+          true ->
+            scope = scope(node.node, %{})
+            scope = Registry.match(S, t.key, scope) |> strip()
+            leaf_nodes = Node.leaf_nodes(scope)
+            Enum.reduce(leaf_nodes, MapSet.new, fn
+              (scope, acc) ->
+                node = Registry.lookup(B, {pid, scope}) |> strip()
+                case node do
+                  (%{from: ^pid}) -> MapSet.put(acc, node)
+                  _ -> acc
+                end
+            end)
         end
       end)
     {:ok, %{t | delete_nodes: delete_nodes, deletes: delete_nodes}}
