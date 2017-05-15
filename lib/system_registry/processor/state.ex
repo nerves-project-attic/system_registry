@@ -4,6 +4,7 @@
   @mount :state
 
   alias SystemRegistry.{Transaction, Global, Registration, Node}
+
   import SystemRegistry.Processor.Utils
 
   def init(opts) do
@@ -17,18 +18,33 @@
     update_nodes = filter_nodes(t.update_nodes, mount)
     delete_nodes = filter_nodes(t.delete_nodes, mount)
 
+    update_reserved =
+      permissions(update_nodes, t.pid)
+    delete_reserved =
+      permissions(update_nodes, t.pid)
 
-    {_, _, reserved} =
-      (update_nodes ++ delete_nodes)
-      |> Enum.reduce({[], [], []}, fn(n, {free, owner, reserved}) ->
-        case Node.binding(:global, n.node) do
-          nil -> {[n.node | free], owner, reserved}
-          %{from: nil} -> {[n.node | free], owner, reserved}
-          %{from: ^pid} -> {free, [n.node | owner], reserved}
-          _ -> {free, owner, [n.node | reserved]}
+    global = SystemRegistry.Utils.global
+
+    leaf_reserved =
+      Node.leaf_nodes(t.updates)
+      |> Enum.reduce([], fn(scope, reserved) ->
+        case get_in(global, scope) do
+          nil -> reserved
+          map ->
+            frag_reserved =
+              Transaction.scope(scope, map)
+              |> Node.leaf_nodes()
+              |> Enum.map(& %Node{node: &1})
+              |> permissions(t.pid)
+            if frag_reserved == [] do
+              reserved
+            else
+              [scope | reserved]
+            end
         end
       end)
-    case reserved do
+
+    case (update_reserved ++ delete_reserved ++ leaf_reserved) do
       [] -> {:ok, :ok, s}
       r -> {:error, {__MODULE__, {:reserved_keys, r}}, s}
     end
@@ -67,5 +83,15 @@
     end
   end
 
+  def permissions(nodes, pid) do
+    Enum.reduce(nodes, [], fn(n, reserved) ->
+      case Node.binding(:global, n.node) do
+        %{from: nil} -> reserved
+        %{from: f_pid} when f_pid != pid ->
+          [n.node | reserved]
+        _ -> reserved
+      end
+    end)
+  end
 
 end

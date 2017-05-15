@@ -3,6 +3,7 @@ defmodule SystemRegistry.RegistrationTest do
 
   alias SystemRegistry, as: SR
   alias SystemRegistry.Registration
+  alias SystemRegistry.Storage.Binding, as: B
 
   setup ctx do
     flush(200)
@@ -81,6 +82,23 @@ defmodule SystemRegistry.RegistrationTest do
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 20)
     SR.delete([:state, root, :a])
     assert_receive({:system_registry, :global, %{}}, 20)
+  end
+
+  test "cannot convert an inner node into a leaf node", %{root: root} do
+    update_task([:state, root, :a, :b], 1)
+    SR.register()
+    assert {:error, _} = SR.update([:state, root, :a], 1)
+  end
+
+  defp update_task(scope, value) do
+    parent = self()
+    {:ok, task} =
+      Task.start(fn ->
+        send(parent, SR.update(scope, value))
+        Process.sleep(:infinity)
+      end)
+    assert_receive {:ok, delta}
+    {delta, task}
   end
 
   def flush(ms) do

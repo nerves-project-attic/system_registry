@@ -131,7 +131,7 @@ defmodule SystemRegistry.Transaction do
     end)
   end
 
-  defp scope(scope, value) do
+  def scope(scope, value) do
     scope
     |> Enum.reverse
     |> Enum.reduce(value, &Map.put(%{}, &1, &2))
