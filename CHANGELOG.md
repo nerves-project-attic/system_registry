@@ -1,7 +1,9 @@
 # SystemRegistry
 
-## v0.1.2-dev
-
+## v0.1.2
+  * Bug Fixes
+    * Prevent inter nodes from being turned into leaf nodes if not all leafs are owned in :global
+    * Clean up bindings when converting inter nodes to leafs
 ## v0.1.1
   * Bug Fixes
     * Processes were being monitored multiple times
