@@ -90,6 +90,15 @@ defmodule SystemRegistry.RegistrationTest do
     assert {:error, _} = SR.update([:state, root, :a], 1)
   end
 
+  test "converting a inner node to a leaf should clean up bindings", %{root: root} do
+    SR.update([:state, root, :a, :b], 1)
+    SR.update([:state, root, :a], 1)
+    reg =
+      Registry.lookup(B, {:global, [:state, root, :a, :b]})
+      |> SR.Utils.strip()
+    assert reg == []
+  end
+
   defp update_task(scope, value) do
     parent = self()
     {:ok, task} =

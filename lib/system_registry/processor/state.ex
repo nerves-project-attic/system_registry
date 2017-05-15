@@ -75,7 +75,7 @@
     end
   end
 
-  def apply_deletes([], _), do: false
+  def apply_deletes([], []), do: false
   def apply_deletes(deletes, nodes) do
     case Global.apply_deletes(deletes, nodes) do
       {_, _} -> true

@@ -60,7 +60,7 @@ defmodule SystemRegistry.Local do
   end
 
   defp commit(%Transaction{pid: pid} = t, s) do
-    with             {:ok, t} <- Transaction.prepare(t),
+    with                    t <- Transaction.prepare(t),
                           :ok <- Processor.call(s.processors, :validate, [t]),
    {:ok, {new, _old} = delta} <- Transaction.commit(t),
                             s <- monitor(pid, s),
