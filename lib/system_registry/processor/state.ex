@@ -52,12 +52,11 @@
 
   def handle_commit(%Transaction{} = t, s) do
     mount = s.mount
-
     {update_nodes, updates} = updates(t, s.mount)
     {delete_nodes, deletes} = deletes(t, s.mount)
 
-    updated? = apply_updates(updates, update_nodes, mount)
     deleted? = apply_deletes(deletes, delete_nodes)
+    updated? = apply_updates(updates, update_nodes, mount)
 
     if updated? or deleted? do
       global = SystemRegistry.match(:global, :_)

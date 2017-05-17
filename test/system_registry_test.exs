@@ -63,6 +63,16 @@ defmodule SystemRegistryTest do
     assert SR.match(self(), %{root => :_}) == %{}
   end
 
+  test "move nodes", %{root: root} do
+    # Move a inter node from one to another
+    {:ok, _} = SR.update([root, :a, :b], 1)
+    assert {:ok, {%{^root => %{c: %{b: 1}}}, _}} = SR.move([root, :a], [root, :c])
+
+    # Move a leaf from one to another
+    {:ok, _} = SR.update([root, :a], 1)
+    assert {:ok, {%{^root => %{b: 1}}, _}} = SR.move([root, :a], [root, :b])
+  end
+
   test "bindings are removed when owner deletes", %{root: root} do
     scope = [root, :a]
     self = self()

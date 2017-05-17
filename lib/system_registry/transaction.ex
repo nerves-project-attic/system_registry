@@ -50,6 +50,18 @@ defmodule SystemRegistry.Transaction do
       updates: updates}
   end
 
+  def move(%__MODULE__{} = t, old_scope, new_scope) do
+    node = Registry.lookup(B, {t.pid, old_scope}) |> strip
+    current_value =
+      Registry.match(S, t.key, :_)
+      |> strip
+    new_value = get_in(current_value, old_scope)
+    
+    t
+    |> delete(old_scope)
+    |> update(new_scope, new_value)
+  end
+
   def delete(%__MODULE__{} = t, value) when is_map(value) do
     Node.leaf_nodes(value)
     |> Enum.reduce(t, fn(node, t) ->
@@ -75,14 +87,14 @@ defmodule SystemRegistry.Transaction do
     delta =
       Registry.update_value(S, t.key, fn(value) ->
         value
-        |> apply_updates(t.updates)
         |> apply_deletes(t.deletes, t.key)
+        |> apply_updates(t.updates)
       end)
     case delta do
       :error -> {:error, :update_local}
       delta ->
-        apply_bindings(t.key, t.update_nodes)
         remove_bindings(t.key, t.delete_nodes)
+        apply_bindings(t.key, t.update_nodes)
         {:ok, delta}
     end
   end

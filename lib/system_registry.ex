@@ -66,7 +66,7 @@ defmodule SystemRegistry do
       iex>  SystemRegistry.update([:a, :b], 1)
       {:ok, {%{a: %{b: 1}}, %{}}}
   """
-  @spec update(Transaction.t, scope :: tuple, value :: term) ::
+  @spec update(Transaction.t, scope :: [term], value :: term) ::
     {:ok, map} | {:error, term}
   def update(_, _, _ \\ nil)
   def update(%Transaction{} = t, scope, value) when not is_nil(scope) do
@@ -76,6 +76,34 @@ defmodule SystemRegistry do
   def update(scope, value, opts) do
     transaction(opts)
     |> update(scope, value)
+    |> commit()
+  end
+
+  @doc """
+    Move a node from one scope to another
+
+    Move can be called on its own:
+
+      iex> SystemRegistry.update([:a], 1)
+      {:ok, {%{a: 1}, %{}}}
+      iex> SystemRegistry.move([:a], [:b])
+      {:ok, {%{b: 1}, %{a: 1}}}
+
+    Or it can be included as part of a transaction pipeline
+
+      iex> SystemRegistry.transaction |> SystemRegistry.update([:a], 1) |> SystemRegistry.move([:a], [:b]) |> SystemRegistry.commit
+      {:ok, {%{b: 1}, %{a: 1}}}
+  """
+  @spec move(Transaction.t, old_scope :: [term], new_scope :: [term]) ::
+    {:ok, map} | {:error, term}
+  def move(_, _, _ \\ nil)
+  def move(%Transaction{} = t, old_scope, new_scope) when not is_nil(new_scope) do
+    Transaction.move(t, old_scope, new_scope)
+  end
+
+  def move(old_scope, new_scope, opts) do
+    transaction(opts)
+    |> move(old_scope, new_scope)
     |> commit()
   end
 
@@ -107,7 +135,7 @@ defmodule SystemRegistry do
       {:ok, {%{}, %{a: %{b: 1}}}}
 
   """
-  @spec delete(Transaction.t, scope) ::
+  @spec delete(Transaction.t, scope :: [term]) ::
     {:ok, map} | {:error, term}
   def delete(_, _ \\ nil)
   def delete(%Transaction{} = t, scope) when not is_nil(scope) do
