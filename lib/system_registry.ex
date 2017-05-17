@@ -82,19 +82,34 @@ defmodule SystemRegistry do
   @doc """
     Move a node from one scope to another
 
+    Move can be called on its own:
+
       iex> SystemRegistry.update([:a], 1)
       {:ok, {%{a: 1}, %{}}}
       iex> SystemRegistry.move([:a], [:b])
       {:ok, {%{b: 1}, %{a: 1}}}
 
+    Or it can be included as part of a transaction pipeline
+
+      iex> SystemRegistry.update([:a], 1)
+      {:ok, {%{a: 1}, %{}}}
+      iex> SystemRegistry.transaction |> SystemRegistry.move([:a], [:b]) |> SystemRegistry.commit
+      {:ok, {%{b: 1}, %{a: 1}}}
   """
-  @spec move(old_scope :: [term], new_scope :: [term]) ::
+  @spec move(Transaction.t, old_scope :: [term], new_scope :: [term]) ::
     {:ok, map} | {:error, term}
-  def move(old_scope, new_scope, opts \\ []) do
+  def move(_, _, _ \\ nil)
+  def move(%Transaction{} = t, old_scope, new_scope) when not is_nil(new_scope) do
+    Transaction.move(t, old_scope, new_scope)
+  end
+
+  def move(old_scope, new_scope, opts) do
     transaction(opts)
-    |> Transaction.move(old_scope, new_scope)
+    |> move(old_scope, new_scope)
     |> commit()
   end
+
+
 
   @doc """
     Execute an transaction to delete keys and their values.
