@@ -51,12 +51,10 @@ defmodule SystemRegistry.Transaction do
   end
 
   def move(%__MODULE__{} = t, old_scope, new_scope) do
-    node = Registry.lookup(B, {t.pid, old_scope}) |> strip
     current_value =
       Registry.match(S, t.key, :_)
       |> strip
     new_value = get_in(current_value, old_scope)
-    
     t
     |> delete(old_scope)
     |> update(new_scope, new_value)

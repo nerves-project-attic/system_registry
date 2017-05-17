@@ -67,10 +67,10 @@ defmodule SystemRegistryTest do
     # Move a inter node from one to another
     {:ok, _} = SR.update([root, :a, :b], 1)
     assert {:ok, {%{^root => %{c: %{b: 1}}}, _}} = SR.move([root, :a], [root, :c])
-
+    SR.delete_all()
     # Move a leaf from one to another
     {:ok, _} = SR.update([root, :a], 1)
-    assert {:ok, {%{^root => %{b: 1}}, _}} = SR.move([root, :a], [root, :b])
+    assert {:ok, {%{root => %{b: 1}}, %{root => %{a: 1}}}} == SR.move([root, :a], [root, :b])
   end
 
   test "bindings are removed when owner deletes", %{root: root} do
