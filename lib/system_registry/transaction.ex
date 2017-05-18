@@ -166,7 +166,7 @@ defmodule SystemRegistry.Transaction do
                 (scope, acc) ->
                   node = Registry.lookup(B, {pid, scope}) |> strip()
                   case node do
-                    (%{from: ^pid}) -> MapSet.put(deletes, node)
+                    (%{from: ^pid}) -> MapSet.put(acc, node)
                     _ -> acc
                   end
               end)
