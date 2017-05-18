@@ -44,7 +44,7 @@ defmodule SystemRegistry.Transaction do
       [leaf | inodes]
       |> Enum.reduce(t.update_nodes, &MapSet.put(&2, &1))
     scope_map = scope(scope, value)
-    updates = deep_merge(scope_map, t.updates)
+    updates = deep_merge(t.updates, scope_map)
     %{t |
       update_nodes: nodes,
       updates: updates}
@@ -119,8 +119,12 @@ defmodule SystemRegistry.Transaction do
         remove_binding(bind_key, [key])
         Map.delete(value, key)
       (%Node{parent: path, key: key}, value) ->
-        update_in(value, path, &Map.delete(&1, key))
-        |> Node.trim_tree(path, bind_key)
+        case get_in(value, path) do
+          nil -> value
+          _ ->
+            update_in(value, path, &Map.delete(&1, key))
+            |> Node.trim_tree(path, bind_key)
+        end
     end)
   end
 
