@@ -1,9 +1,11 @@
 # SystemRegistry
 
-## v0.2.0-dev
+## v0.2.0
   * Enhancements
     * nodes and their values can be moved to another node
-    
+  * Bug Fixes
+    * deleting an inner node did not delete all leaf nodes
+
 ## v0.1.2
   * Bug Fixes
     * Prevent inter nodes from being turned into leaf nodes if not all leafs are owned in :global
