@@ -159,16 +159,19 @@ defmodule SystemRegistry.Transaction do
       Enum.reduce(t.deletes, {t.delete_nodes, MapSet.new}, fn(node, {delete_nodes, deletes}) ->
         reg_node = Registry.lookup(B, {t.key, node.node}) |> strip()
         cond do
-          reg_node == [] -> {delete_nodes, MapSet.put(deletes, node)}
-          Node.is_leaf?(reg_node) -> {delete_nodes, MapSet.put(deletes, node)}
+          reg_node == [] ->
+            {delete_nodes, MapSet.put(deletes, node)}
+          Node.is_leaf?(reg_node) ->
+            {delete_nodes, MapSet.put(deletes, node)}
           true ->
             scope = scope(node.node, %{})
-            scope = Registry.match(S, t.key, scope) |> strip()
+            reg = Registry.match(S, t.key, scope) |> strip()
+            reg_scope = get_in(reg, node.node)
             leaf_nodes =
-              Node.leaf_nodes(scope)
+              Node.leaf_nodes(reg_scope)
               |> Enum.reduce(MapSet.new, fn
                 (scope, acc) ->
-                  node = Registry.lookup(B, {pid, scope}) |> strip()
+                  node = Registry.lookup(B, {pid, node.node ++ scope}) |> strip()
                   case node do
                     (%{from: ^pid}) -> MapSet.put(acc, node)
                     _ -> acc
