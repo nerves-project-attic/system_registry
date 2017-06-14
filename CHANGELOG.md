@@ -1,5 +1,9 @@
 # SystemRegistry
 
+## v0.2.1
+  * Bug Fixes
+    * Deleting a node would cause all node bindings to be deleted.
+
 ## v0.2.0
   * Enhancements
     * nodes and their values can be moved to another node
