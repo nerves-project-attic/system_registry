@@ -51,7 +51,8 @@ defmodule SystemRegistry.Registration do
 
     Registry.register(B, pid, [])
     Registry.update_value(B, pid, &[reg | &1])
-    {:reply, {:ok, reply}, s}
+    notify_reg(reg, key, reply)
+    {:reply, :ok, s}
   end
 
   def handle_call({:unregister, pid, key}, _, s) do

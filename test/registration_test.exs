@@ -14,7 +14,8 @@ defmodule SystemRegistry.RegistrationTest do
     scope = [:state, root, :a]
     value = 1
     SR.update(scope, value)
-    {:ok, state} = SR.register(min_interval: 50)
+    :ok = SR.register(min_interval: 50)
+    assert_receive {:system_registry, :global, state}
     assert ^value = get_in(state, scope)
   end
 

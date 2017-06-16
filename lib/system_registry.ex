@@ -206,7 +206,13 @@ defmodule SystemRegistry do
     Examples
 
       iex> SystemRegistry.register()
-      {:ok, %{}}
+      :ok
+      iex> receive do
+      ...>   _ -> :ok
+      ...> after
+      ...>   0 -> :ok
+      ...> end
+      :ok
       iex> SystemRegistry.update([:state, :a], 1)
       {:ok, {%{state: %{a: 1}}, %{}}}
       iex> Process.info(self())[:messages]
@@ -222,7 +228,13 @@ defmodule SystemRegistry do
       iex> SystemRegistry.delete_all()
       {:ok, {%{}, %{state: %{a: 1}}}}
       iex> SystemRegistry.register(hysteresis: 10, min_interval: 50)
-      {:ok, %{}}
+      :ok
+      iex> receive do
+      ...>   _ -> :ok
+      ...> after
+      ...>   0 -> :ok
+      ...> end
+      :ok
       iex> SystemRegistry.update([:state, :a], 1)
       {:ok, {%{state: %{a: 1}}, %{}}}
       iex> Process.info(self())[:messages]

@@ -1,5 +1,9 @@
 # SystemRegistry
 
+## v0.3.0-dev
+  * Bug Fixes
+    * register will not return the current state for the key. Instead, the registrant will queued a message.
+
 ## v0.2.1
   * Bug Fixes
     * Deleting a node would cause all node bindings to be deleted.
