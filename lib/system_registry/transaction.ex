@@ -38,7 +38,7 @@ defmodule SystemRegistry.Transaction do
   end
 
   def update(%__MODULE__{} = t, scope, value) do
-    leaf = Node.leaf(scope)
+    leaf = Node.leaf(scope, pid: t.pid)
     inodes = Node.inodes(scope)
     nodes =
       [leaf | inodes]
@@ -68,7 +68,7 @@ defmodule SystemRegistry.Transaction do
   end
 
   def delete(%__MODULE__{} = t, scope) do
-    leaf = Node.leaf(scope)
+    leaf = Node.leaf(scope, pid: t.pid)
     %{t |
       delete_nodes: MapSet.put(t.delete_nodes, leaf),
       deletes: MapSet.put(t.deletes, leaf)}
