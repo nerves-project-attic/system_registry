@@ -41,10 +41,8 @@ defmodule SystemRegistry.Local do
       |> strip()
       |> get_in(scope)
     value = fun.(value)
-    reply =
-      t
-      |> Transaction.update(scope, value)
-      |> Transaction.commit()
+      t = Transaction.update(t, scope, value)
+    {reply, s} = commit(t, s)
     {:reply, reply, s}
   end
 
