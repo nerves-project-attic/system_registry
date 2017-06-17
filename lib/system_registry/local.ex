@@ -35,6 +35,19 @@ defmodule SystemRegistry.Local do
     {:reply, reply, s}
   end
 
+  def handle_call({:update_in, t, scope, fun}, _, s) do
+    value =
+      Registry.lookup(S, t.key)
+      |> strip()
+      |> get_in(scope)
+    value = fun.(value)
+    reply =
+      t
+      |> Transaction.update(scope, value)
+      |> Transaction.commit()
+    {:reply, reply, s}
+  end
+
   def handle_call({:delete_all, pid}, _, s) do
     {reply, s} = delete_all(pid, s)
     {:reply, reply, s}

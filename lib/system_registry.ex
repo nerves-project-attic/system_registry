@@ -80,6 +80,26 @@ defmodule SystemRegistry do
   end
 
   @doc """
+    Execute an transaction to modify data in place by passing a modifier function.
+
+    Allows for the manipulation of the value at the scope. Useful for when the
+    value needs to be modified in place.
+
+    For Example:
+
+      iex> SystemRegistry.update([:a], [1])
+      {:ok, {%{a: [1]}, %{}}}
+      iex> SystemRegistry.update_in([:a], fn(value) -> [2 | value] end)
+      {:ok, {%{a: [2, 1]}, %{a: [1]}}}
+  """
+  @spec update_in(scope :: [term], (term -> term), opts :: keyword()) ::
+    {:ok, map} | {:error, term}
+  def update_in(scope, fun, opts \\ []) do
+    t = Transaction.begin(opts)
+    GenServer.call(Local, {:update_in, t, scope, fun})
+  end
+
+  @doc """
     Move a node from one scope to another
 
     Move can be called on its own:
