@@ -1,9 +1,9 @@
 # SystemRegistry
 
-## v0.3.0-dev
+## v0.3.0
   * Bug Fixes
     * register will not return the current state for the key. Instead, the registrant will queued a message.
-    * added update_in/3 for modifying the value at a scope in place.
+    * added update_in/3 for modifying the value of a scope transactionally.
 
 ## v0.2.1
   * Bug Fixes

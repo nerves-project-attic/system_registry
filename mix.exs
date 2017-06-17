@@ -3,7 +3,7 @@ defmodule SystemRegistry.Mixfile do
 
   def project do
     [app: :system_registry,
-     version: "0.3.0-dev",
+     version: "0.3.0",
      elixir: "~> 1.4 or ~> 1.5.0-dev",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
