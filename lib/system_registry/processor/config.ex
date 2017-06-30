@@ -11,7 +11,7 @@ defmodule SystemRegistry.Processor.Config do
 
   def init(opts) do
     mount = opts[:mount] || @mount
-    priorities = opts[:priorities] || []
+    priorities = opts[:priorities] || default_priorities()
 
     {:ok, %{
       opts: opts,
@@ -24,10 +24,10 @@ defmodule SystemRegistry.Processor.Config do
   def handle_validate(%Transaction{} = t, s) do
     updates = updates(t, s.mount)
     deletes = deletes(t, s.mount)
-    
+
     priority = t.opts[:priority]
     if modified?(updates, deletes) do
-      if priority in s.priorities do
+      if priority in s.priorities or :_ in s.priorities do
         {:ok, :ok, s}
       else
         {:error,
@@ -65,9 +65,19 @@ defmodule SystemRegistry.Processor.Config do
 
   def merge(%{priorities: priorities, producers: producers, mount: mount}) do
     priorities = Enum.reverse(priorities)
-    Enum.reduce(priorities, %{}, fn(priority, value) ->
+    {reg, unreg} =
+      Enum.split_with(producers, fn({priority, _}) -> priority in priorities end)
+
+    Enum.reduce(priorities, %{}, fn
+      (priority, value) ->
+
       p_producers =
-        Enum.filter(producers, fn({p_priority, _}) -> p_priority == priority end)
+        case priority do
+          :_ ->
+            unreg
+          priority ->
+            Enum.filter(reg, fn({p_priority, _}) -> p_priority == priority end)
+        end
 
       Enum.reduce(p_producers, value, fn({_, pid}, value) ->
         p_value =
@@ -77,6 +87,10 @@ defmodule SystemRegistry.Processor.Config do
         deep_merge(value, p_value)
       end)
     end)
+  end
+
+  defp default_priorities() do
+    [:debug, :_, :default]
   end
 
 end

@@ -1,5 +1,5 @@
 defmodule SystemRegistry.Processor.ConfigTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
 
   alias SystemRegistry, as: SR
 
@@ -36,6 +36,22 @@ defmodule SystemRegistry.Processor.ConfigTest do
 
   test "return error if transaction priority is not declared in application configuration", %{root: root} do
     assert {:error, _} = SR.update([:config, root, :a], 1, priority: :pd)
+  end
+
+  test "allow default priorities", %{root: root} do
+    Application.put_env(:system_registry, SystemRegistry.Processor.Config,
+      priorities: [
+        :pa,
+        :_,
+        :pc
+      ])
+      assert {:ok, _} = SR.update([:config, root, :a], 1, priority: :pc)
+      assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
+      assert {:ok, _} = SR.update([:config, root, :a], 2, priority: :pb)
+      assert %{config: %{^root => %{a: 2}}} = SR.match(%{config: %{root => %{}}})
+      assert {:ok, _} = SR.update([:config, root, :a], 3, priority: :pa)
+      assert {:ok, _} = SR.update([:config, root, :b], 4, priority: :pa)
+      assert %{config: %{^root => %{a: 3, b: 4}}} = SR.match(%{config: %{root => %{}}})
   end
 
   defp update_task(key, scope, value) do
