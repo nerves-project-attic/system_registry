@@ -1,5 +1,9 @@
 # SystemRegistry
 
+## v0.4.0
+  * Enhancements
+    * SystemRegistry.Processor.Config no longer requires the top level application to declare the priorities. Defaults to `[:debug, :_, :default]` which allows `:_` to be used to represent any applications that have not been specifically declared.
+
 ## v0.3.0
   * Bug Fixes
     * register will not return the current state for the key. Instead, the registrant will queued a message.
