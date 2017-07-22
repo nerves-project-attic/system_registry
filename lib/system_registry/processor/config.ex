@@ -9,6 +9,10 @@ defmodule SystemRegistry.Processor.Config do
   import SystemRegistry.Processor.Utils
   import SystemRegistry.Utils
 
+  def put_priorities(priorities) do
+    GenServer.call(__MODULE__, {:put_priorities, priorities})
+  end
+
   def init(opts) do
     mount = opts[:mount] || @mount
     priorities = opts[:priorities] || default_priorities()
@@ -55,6 +59,10 @@ defmodule SystemRegistry.Processor.Config do
     else
       {:ok, :ok, s}
     end
+  end
+
+  def handle_call({:put_priorities, priorities}, _from, s) do
+    {:reply, :ok, %{s | priorities: priorities}}
   end
 
   def handle_info({:DOWN, _, _, pid, _}, s) do
