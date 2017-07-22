@@ -106,8 +106,22 @@ config :system_registry, SystemRegistry.Processor.State,
 The `Config` processor monitors transactions for any that are writing values to the top-level `:config` scope.
 Values in the config scope can be written to by any process with a valid transaction.
 
+It validates that the transaction option `:priority` is set to a value form the application configuration. You can use `:_` to specify any priority value other than the ones specified which includes `nil`.
 
-It validates that the transaction option `:priority` is set to a value form the application configuration. Options can be passed in when starting a transaction, or when using `update` / `delete` directly.
+```elixir
+config :system_registry, SystemRegistry.Processor.Config,
+  priorities: [
+      :high,
+      :medium,
+      :low,
+      :_
+    ]
+```
+
+If priorities are not declared in the application config, the default priority
+levels `[:debug, :_, :default]` will be used.
+
+Options can be passed in when starting a transaction, or when using `update` / `delete` directly.
 
 ```elixir
 # Pass as options
@@ -118,18 +132,7 @@ SystemRegistry.transaction(priority: :high)
 |> SystemRegistry.commit
 ```
 
-First you must declare an ordered list of scope names in your application config.
-
-```elixir
-config :system_registry, SystemRegistry.Processor.Config,
-priorities: [
-  :high,
-  :medium,
-  :low
-  ])
-```
-
-When the global state is returned, it will be the merged result of the state set by each producing process in the priority order defined in the application config. In the example above, `:high` will take precedence over `:medium` and `:medium` over `:low` and so on.
+When the global state is returned, it will be the merged result of the state set by each producing process in the priority order defined in the application config. In the example above, `:high` will take precedence over `:medium` and `:medium` over `:low` and so on. Any transactions that fall into the `:_` priority level will be merged together in no particular order.
 
 The mount point for the `Config` processor defaults to `:config`, but can be configured in your application:
 
