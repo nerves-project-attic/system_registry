@@ -12,7 +12,7 @@ defmodule SystemRegistry.Processor do
       use GenServer
 
       def start_link(opts \\ []) do
-        GenServer.start_link(SystemRegistry.Processor, {__MODULE__, opts})
+        GenServer.start_link(SystemRegistry.Processor, {__MODULE__, opts}, name: __MODULE__)
       end
 
       def validate(pid, transaction) do
@@ -52,7 +52,6 @@ defmodule SystemRegistry.Processor do
   end
 
   def handle_call({:validate, transaction}, _from, {mod, opts}) do
-
     case mod.handle_validate(transaction, opts) do
       {:ok, t, s} -> {:reply, {:ok, t}, {mod, s}}
       {:error, error, s} -> {:reply, {:error, error}, {mod, s}}
@@ -63,6 +62,26 @@ defmodule SystemRegistry.Processor do
     case mod.handle_commit(transaction, opts) do
       {:ok, t, s} -> {:reply, {:ok, t}, {mod, s}}
       {:error, error, s} -> {:reply, {:error, error}, {mod, s}}
+    end
+  end
+
+  def handle_call(message, from, {mod, opts}) do
+    case mod.handle_call(message, from, opts) do
+      {:noreply, s} -> {:noreply, {mod, s}}
+      {:noreply, s, timeout} -> {:noreply, {mod, s}, timeout}
+      {:reply, reply, s} -> {:reply, reply, {mod, s}}
+      {:reply, reply, s, timeout} -> {:reply, reply, {mod, s}, timeout}
+      {:stop, reason, s} -> {:stop, reason, {mod, s}}
+      {:stop, reason, reply, s} -> {:stop, reason, reply, {mod, s}}
+    end
+  end
+
+  def handle_cast(message, {mod, opts}) do
+    case mod.handle_cast(message, opts) do
+      {:noreply, s} -> {:noreply, {mod, s}}
+      {:noreply, s, timeout} -> {:noreply, {mod, s}, timeout}
+      {:stop, reason, s} -> {:stop, reason, {mod, s}}
+      {:stop, reason, reply, s} -> {:stop, reason, reply, {mod, s}}
     end
   end
 

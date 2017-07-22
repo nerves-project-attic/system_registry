@@ -3,23 +3,21 @@ defmodule SystemRegistry.Processor.ConfigTest do
 
   alias SystemRegistry, as: SR
 
-  Application.put_env(:system_registry, SystemRegistry.Processor.Config,
-    priorities: [
-      :pa,
-      :pb,
-      :pc
-    ])
+  @default [:pa, :_, :pc]
+  @explicit [:pa, :pb, :pc]
 
   setup ctx do
     %{root: ctx.test}
   end
 
   test "config processor updates global", %{root: root} do
+    put_priorities(@explicit)
     assert {:ok, _} = SR.update([:config, root, :a], 1, priority: :pa)
     assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
   end
 
   test "config processor orders by priority global", %{root: root} do
+    put_priorities(@explicit)
     assert {:ok, _} = SR.update([:config, root, :a], 1, priority: :pc)
     assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
     assert {:ok, _} = SR.update([:config, root, :a], 2, priority: :pb)
@@ -29,29 +27,26 @@ defmodule SystemRegistry.Processor.ConfigTest do
   end
 
   test "config is recalculated when a producer dies", %{root: root} do
+    put_priorities(@explicit)
     {_, task} = update_task([:config, root, :a], 1, priority: :pa)
     assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
     Process.exit(task, :kill)
   end
 
   test "return error if transaction priority is not declared in application configuration", %{root: root} do
+    put_priorities(@explicit)
     assert {:error, _} = SR.update([:config, root, :a], 1, priority: :pd)
   end
 
   test "allow default priorities", %{root: root} do
-    Application.put_env(:system_registry, SystemRegistry.Processor.Config,
-      priorities: [
-        :pa,
-        :_,
-        :pc
-      ])
-      assert {:ok, _} = SR.update([:config, root, :a], 1, priority: :pc)
-      assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
-      assert {:ok, _} = SR.update([:config, root, :a], 2, priority: :pb)
-      assert %{config: %{^root => %{a: 2}}} = SR.match(%{config: %{root => %{}}})
-      assert {:ok, _} = SR.update([:config, root, :a], 3, priority: :pa)
-      assert {:ok, _} = SR.update([:config, root, :b], 4, priority: :pa)
-      assert %{config: %{^root => %{a: 3, b: 4}}} = SR.match(%{config: %{root => %{}}})
+    put_priorities(@default)
+    assert {:ok, _} = SR.update([:config, root, :a], 1, priority: :pc)
+    assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
+    assert {:ok, _} = SR.update([:config, root, :a], 2, priority: :pb)
+    assert %{config: %{^root => %{a: 2}}} = SR.match(%{config: %{root => %{}}})
+    assert {:ok, _} = SR.update([:config, root, :a], 3, priority: :pa)
+    assert {:ok, _} = SR.update([:config, root, :b], 4, priority: :pa)
+    assert %{config: %{^root => %{a: 3, b: 4}}} = SR.match(%{config: %{root => %{}}})
   end
 
   defp update_task(key, scope, value) do
@@ -63,6 +58,10 @@ defmodule SystemRegistry.Processor.ConfigTest do
       end)
     assert_receive {:ok, delta}
     {delta, task}
+  end
+
+  defp put_priorities(priorities) do
+    SystemRegistry.Processor.Config.put_priorities(priorities)
   end
 
 end
