@@ -98,7 +98,7 @@ defmodule SystemRegistry.Processor.Config do
   end
 
   defp default_priorities() do
-    [:debug, :_, :default]
+    [:debug, :_, :persistence, :default]
   end
 
 end
