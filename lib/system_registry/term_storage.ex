@@ -50,6 +50,7 @@ defmodule SystemRegistry.TermStorage do
   def init(opts) do
     scopes = opts[:scopes] || []
     path = opts[:path] || "/tmp/system_registry"
+    Enum.each(scopes, &notify(path, &1))
     SystemRegistry.register()
     {:ok, %{
       scopes: scopes,
@@ -59,9 +60,7 @@ defmodule SystemRegistry.TermStorage do
   end
 
   def handle_call({:persist, scope}, _from, s) do
-    if value = get_value(s.path, scope) do
-      SystemRegistry.update(scope, value, priority: :persistence)
-    end
+    notify(s.path, scope)
     {:reply, :ok, %{s | scopes: [scope | s.scopes]}}
   end
 
@@ -80,6 +79,12 @@ defmodule SystemRegistry.TermStorage do
         [{scope, value} | acc]
       end)
     {:noreply, %{s | values: values}}
+  end
+
+  defp notify(path, scope) do
+    if value = get_value(path, scope) do
+      SystemRegistry.update(scope, value, priority: :persistence)
+    end
   end
 
   defp put_value(path, scope, value) do
