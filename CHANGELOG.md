@@ -1,5 +1,12 @@
 # SystemRegistry
 
+## v0.5.0
+  * Enhancements
+    * Added simple persistence mainly for use with the
+    `SystemRegistry.Processors.Config` processor.
+  * Bug Fixes
+    * Processor behaviour passes all call / cast through to the implementation.
+
 ## v0.4.0
   * Enhancements
     * SystemRegistry.Processor.Config no longer requires the top level application to declare the priorities. Defaults to `[:debug, :_, :default]` which allows `:_` to be used to represent any applications that have not been specifically declared.
