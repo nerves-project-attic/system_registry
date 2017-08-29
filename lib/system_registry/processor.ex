@@ -1,10 +1,12 @@
 defmodule SystemRegistry.Processor do
 
-  @callback handle_validate(Transaction.t, state :: term) ::
-    {:ok, Transaction.t} | {:error, term}
+  @doc "Handles a validation. Takes a transaction, and returns {:ok, reply, state} or {:error, reason, state}."
+  @callback handle_validate(SystemRegistry.Transaction.t, state :: term) ::
+    {:ok, term, state :: term} | {:error, reason :: term, state :: term}
 
-  @callback handle_commit(Transaction.t, state :: term) ::
-    {:ok, Transaction.t} | {:error, term}
+  @doc "Handles a commit. Takes a transaction and returns {:ok, reply, state} | {:error, reason, state}."
+  @callback handle_commit(SystemRegistry.Transaction.t, state :: term) ::
+    {:ok, term, state :: term} | {:error, reason :: term, state :: term}
 
   defmacro __using__(_opts) do
     quote do

@@ -12,8 +12,7 @@ defmodule SystemRegistry do
     the scope of the operation as a list of keys to walk to the desired tree node.
   """
 
-  @type scope ::
-    {:state | :config, group :: atom, component :: term}
+  @type scope :: [term]
 
   alias SystemRegistry.{Local, Transaction, Registration}
   alias SystemRegistry.Storage.State, as: S
@@ -28,7 +27,7 @@ defmodule SystemRegistry do
       {:ok, {%{a: 1}, %{}}}
 
   """
-  @spec transaction(opts :: keyword()) :: Transaction.t
+  @spec transaction(opts :: Keyword.t) :: Transaction.t
   def transaction(opts \\ []) do
     Transaction.begin(opts)
   end
@@ -66,13 +65,15 @@ defmodule SystemRegistry do
       iex>  SystemRegistry.update([:a, :b], 1)
       {:ok, {%{a: %{b: 1}}, %{}}}
   """
-  @spec update(Transaction.t, scope :: [term], value :: term) ::
-    {:ok, {new :: map, old :: map}} | {:error, term}
+  # @spec update(Transaction.t | scope, scope | value :: term, value :: term) :: {:ok, {new :: map, old :: map}} | {:error, term}
+  # @spec update(Transaction.t | [term], [term] | any, Keyword.t | any) :: Transaction.t | {:ok, {new :: map, old :: map}} | {:error, term}
+  @spec update(one, scope, value :: any) :: Transaction.t when one: Transaction.t
   def update(_, _, _ \\ nil)
   def update(%Transaction{} = t, scope, value) when not is_nil(scope) do
     Transaction.update(t, scope, value)
   end
 
+  @spec update(one, value :: any, opts :: Keyword.t) :: {:ok, {new :: map, old :: map}} | {:error, term} when one: [term]
   def update(scope, value, opts) do
     transaction(opts)
     |> update(scope, value)
@@ -92,7 +93,7 @@ defmodule SystemRegistry do
       iex> SystemRegistry.update_in([:a], fn(value) -> [2 | value] end)
       {:ok, {%{a: [2, 1]}, %{a: [1]}}}
   """
-  @spec update_in(scope :: [term], (term -> term), opts :: keyword()) ::
+  @spec update_in(scope, (term -> term), opts :: keyword()) ::
     {:ok, {new :: map, old :: map}} | {:error, term}
   def update_in(scope, fun, opts \\ []) do
     t = Transaction.begin(opts)
@@ -116,8 +117,8 @@ defmodule SystemRegistry do
       iex> SystemRegistry.transaction |> SystemRegistry.move([:a], [:b]) |> SystemRegistry.commit
       {:ok, {%{b: 1}, %{a: 1}}}
   """
-  @spec move(Transaction.t, old_scope :: [term], new_scope :: [term]) ::
-    {:ok, {new :: map, old :: map}} | {:error, term}
+  # @spec move(Transaction.t, old_scope, new_scope) ::
+  #   {:ok, {new :: map, old :: map}} | {:error, term}
   def move(_, _, _ \\ nil)
   def move(%Transaction{} = t, old_scope, new_scope) when not is_nil(new_scope) do
     Transaction.move(t, old_scope, new_scope)
@@ -128,8 +129,6 @@ defmodule SystemRegistry do
     |> move(old_scope, new_scope)
     |> commit()
   end
-
-
 
   @doc """
     Execute an transaction to delete keys and their values.
@@ -157,8 +156,6 @@ defmodule SystemRegistry do
       {:ok, {%{}, %{a: %{b: 1}}}}
 
   """
-  @spec delete(Transaction.t, scope :: [term]) ::
-    {:ok, {new :: map, old :: map}} | {:error, term}
   def delete(_, _ \\ nil)
   def delete(%Transaction{} = t, scope) when not is_nil(scope) do
     Transaction.delete(t, scope)
@@ -182,7 +179,7 @@ defmodule SystemRegistry do
       {:ok, {%{}, %{a: %{b: 1}}}}
 
   """
-  @spec delete_all(pid) ::
+  @spec delete_all(pid | nil) ::
     {:ok, {new :: map, old :: map}} | {:error, term}
   def delete_all(pid \\ nil) do
     GenServer.call(Local, {:delete_all, (pid || self())})
@@ -301,7 +298,7 @@ defmodule SystemRegistry do
   @doc """
     Unregister process from receiving notifications
   """
-  @spec unregister_all(pid) ::
+  @spec unregister_all(pid | nil) ::
     :ok | {:error, term}
   def unregister_all(pid \\ nil) do
     Registration.unregister_all((pid || self()))
