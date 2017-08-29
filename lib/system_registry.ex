@@ -37,7 +37,7 @@ defmodule SystemRegistry do
     Commit a transaction. Attempts to apply all changes. If successful, will notify_all.
   """
   @spec commit(Transaction.t) ::
-    {:ok, map} | {:error, term}
+    {:ok, {new :: map, old :: map}} | {:error, term}
   def commit(transaction) do
     GenServer.call(Local, {:commit, transaction})
   end
@@ -67,7 +67,7 @@ defmodule SystemRegistry do
       {:ok, {%{a: %{b: 1}}, %{}}}
   """
   @spec update(Transaction.t, scope :: [term], value :: term) ::
-    {:ok, map} | {:error, term}
+    {:ok, {new :: map, old :: map}} | {:error, term}
   def update(_, _, _ \\ nil)
   def update(%Transaction{} = t, scope, value) when not is_nil(scope) do
     Transaction.update(t, scope, value)
@@ -93,7 +93,7 @@ defmodule SystemRegistry do
       {:ok, {%{a: [2, 1]}, %{a: [1]}}}
   """
   @spec update_in(scope :: [term], (term -> term), opts :: keyword()) ::
-    {:ok, map} | {:error, term}
+    {:ok, {new :: map, old :: map}} | {:error, term}
   def update_in(scope, fun, opts \\ []) do
     t = Transaction.begin(opts)
     GenServer.call(Local, {:update_in, t, scope, fun})
@@ -117,7 +117,7 @@ defmodule SystemRegistry do
       {:ok, {%{b: 1}, %{a: 1}}}
   """
   @spec move(Transaction.t, old_scope :: [term], new_scope :: [term]) ::
-    {:ok, map} | {:error, term}
+    {:ok, {new :: map, old :: map}} | {:error, term}
   def move(_, _, _ \\ nil)
   def move(%Transaction{} = t, old_scope, new_scope) when not is_nil(new_scope) do
     Transaction.move(t, old_scope, new_scope)
@@ -158,7 +158,7 @@ defmodule SystemRegistry do
 
   """
   @spec delete(Transaction.t, scope :: [term]) ::
-    {:ok, map} | {:error, term}
+    {:ok, {new :: map, old :: map}} | {:error, term}
   def delete(_, _ \\ nil)
   def delete(%Transaction{} = t, scope) when not is_nil(scope) do
     Transaction.delete(t, scope)
@@ -183,7 +183,7 @@ defmodule SystemRegistry do
 
   """
   @spec delete_all(pid) ::
-    {:ok, map} | {:error, term}
+    {:ok, {new :: map, old :: map}} | {:error, term}
   def delete_all(pid \\ nil) do
     GenServer.call(Local, {:delete_all, (pid || self())})
   end
@@ -280,7 +280,7 @@ defmodule SystemRegistry do
 
   """
   @spec register(opts :: keyword) ::
-    {:ok, map} | {:error, term}
+    :ok | {:error, term}
   def register(opts \\ []) do
     key = opts[:key] || :global
     case Registration.registered?(key) do
