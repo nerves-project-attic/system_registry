@@ -65,15 +65,13 @@ defmodule SystemRegistry do
       iex>  SystemRegistry.update([:a, :b], 1)
       {:ok, {%{a: %{b: 1}}, %{}}}
   """
-  # @spec update(Transaction.t | scope, scope | value :: term, value :: term) :: {:ok, {new :: map, old :: map}} | {:error, term}
-  # @spec update(Transaction.t | [term], [term] | any, Keyword.t | any) :: Transaction.t | {:ok, {new :: map, old :: map}} | {:error, term}
   @spec update(one, scope, value :: any) :: Transaction.t when one: Transaction.t
   def update(_, _, _ \\ nil)
   def update(%Transaction{} = t, scope, value) when not is_nil(scope) do
     Transaction.update(t, scope, value)
   end
 
-  @spec update(one, value :: any, opts :: Keyword.t) :: {:ok, {new :: map, old :: map}} | {:error, term} when one: [term]
+  @spec update(one, value :: any, opts :: Keyword.t) :: {:ok, {new :: map, old :: map}} | {:error, term} when one: scope
   def update(scope, value, opts) do
     transaction(opts)
     |> update(scope, value)
@@ -117,13 +115,13 @@ defmodule SystemRegistry do
       iex> SystemRegistry.transaction |> SystemRegistry.move([:a], [:b]) |> SystemRegistry.commit
       {:ok, {%{b: 1}, %{a: 1}}}
   """
-  # @spec move(Transaction.t, old_scope, new_scope) ::
-  #   {:ok, {new :: map, old :: map}} | {:error, term}
+  @spec move(transaction, scope, scope) :: Transaction.t when transaction: Transaction.t
   def move(_, _, _ \\ nil)
   def move(%Transaction{} = t, old_scope, new_scope) when not is_nil(new_scope) do
     Transaction.move(t, old_scope, new_scope)
   end
 
+  @spec move(scope_arg, scope, opts :: nil | Keyword.t) :: {:ok, {new :: map, old :: map}} | {:error, term} when scope_arg: scope
   def move(old_scope, new_scope, opts) do
     transaction(opts)
     |> move(old_scope, new_scope)
@@ -156,11 +154,13 @@ defmodule SystemRegistry do
       {:ok, {%{}, %{a: %{b: 1}}}}
 
   """
+  @spec delete(transaction, scope) :: Transaction.t when transaction: Transaction.t
   def delete(_, _ \\ nil)
   def delete(%Transaction{} = t, scope) when not is_nil(scope) do
     Transaction.delete(t, scope)
   end
 
+  @spec delete(scope, Keyword.t | nil) :: {:ok, {new :: map, old :: map}} | {:error, term}
   def delete(scope, opts) do
     opts = opts || []
     transaction(opts)
