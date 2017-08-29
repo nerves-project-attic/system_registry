@@ -1,5 +1,10 @@
 # SystemRegistry
 
+## v0.6.0
+  * Enhancements
+    * Added `SystemRegistry.Task` for a supervised process that executes a function
+    anytime the contents of a given system_registry scope changes.
+
 ## v0.5.0
   * Enhancements
     * Added simple persistence mainly for use with the
