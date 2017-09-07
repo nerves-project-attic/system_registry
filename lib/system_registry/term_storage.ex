@@ -36,10 +36,10 @@ defmodule SystemRegistry.TermStorage do
   @doc """
   A scope to a leaf node to be persisted upon change.
 
-  For Example:
-    Lets say that we want to make sure that the ssid for our wireless
-    network is persisted between reboots.
-    `SystemRegistry.TermStorage.persist([:config, :network_interface, "wlan0", :ssid])``
+  For example, let's say that we want to make sure that the ssid for our wireless
+  network is persisted between reboots:
+
+      SystemRegistry.TermStorage.persist([:config, :network_interface, "wlan0", :ssid])
   """
   def persist(scope) do
     GenServer.call(__MODULE__, {:persist, scope})
