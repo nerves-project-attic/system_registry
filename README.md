@@ -46,8 +46,18 @@ At any time, you can call `match/1` to fetch the current value for a [`match_spe
 
 ```elixir
 {:ok, {%{a: 1}, %{}}} = SystemRegistry.update([:a], 1)
-%{a: 1} = SystemRegistry.match(%{a: :_})
-%{} = SystemRegistry.match(%{b: :_})
+%{a: 1} = SystemRegistry.match(self(), %{a: :_})
+%{} = SystemRegistry.match(self(), %{b: :_})
+```
+**Note:** If you're not using a processor (like the included `:config` or `:state`) your updates will be applied to the `local` fragment. To retrieve them you must pass the pid as the first argument to `match`. 
+
+When using the `global` storage fragment via `:state`, `:config` or a custom processor you may omit the pid.
+
+```elixir
+iex(1)> {:ok, {new, old}} = SystemRegistry.update([:state, :a], 1)
+{:ok, {%{state: %{a: 1}}, %{}}}
+iex(2)> SystemRegistry.match(%{state: %{a: :_}})
+%{state: %{a: 1}}
 ```
 
 Calling `delete/1` will return the current state and recursively trim the tree if intermediate nodes no longer have a value set.
