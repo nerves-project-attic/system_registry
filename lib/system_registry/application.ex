@@ -21,16 +21,13 @@ defmodule SystemRegistry.Application do
       Application.get_env(:system_registry, SystemRegistry.Processor.Config)
     state_opts =
       Application.get_env(:system_registry, SystemRegistry.Processor.State)
-    term_storage_opts =
-      Application.get_env(:system_registry, SystemRegistry.TermStorage)
 
     workers = [
       worker(SystemRegistry.Local, []),
       worker(SystemRegistry.Global, []),
       worker(SystemRegistry.Registration, []),
       worker(SystemRegistry.Processor.State, [state_opts]),
-      worker(SystemRegistry.Processor.Config, [config_opts]),
-      worker(SystemRegistry.TermStorage, [term_storage_opts])
+      worker(SystemRegistry.Processor.Config, [config_opts])
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
