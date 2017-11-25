@@ -49,19 +49,6 @@ defmodule SystemRegistry.Processor.ConfigTest do
     assert %{config: %{^root => %{a: 3, b: 4}}} = SR.match(%{config: %{root => %{}}})
   end
 
-  test "config values can be persisted", %{root: root} do
-    scope = [:config, root, :a]
-    {_, task} = update_task(scope, 1, priority: :pa)
-    assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
-    Process.exit(task, :kill)
-    assert %{config: %{}} = SR.match(%{config: %{root => %{}}})
-    assert :ok == SR.TermStorage.persist(scope)
-    {_, task} = update_task(scope, 1, priority: :pa)
-    assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
-    Process.exit(task, :kill)
-    assert %{config: %{^root => %{a: 1}}} = SR.match(%{config: %{root => %{}}})
-  end
-
   test "scopes declated in config are persisted", %{root: _root} do
     scope = [:config, :a]
     {_, task} = update_task(scope, 1, priority: :pa)
