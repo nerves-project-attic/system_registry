@@ -1,6 +1,6 @@
 # SystemRegistry
 
-[![Build Status](https://travis-ci.org/mobileoverlord/system_registry.svg?branch=master)](https://travis-ci.org/mobileoverlord/system_registry)
+[![CircleCI](https://circleci.com/gh/nerves-project/system_registry.svg?style=svg)](https://circleci.com/gh/nerves-project/system_registry)
 
 Local, transactional, nested term storage and dispatch registry.
 
