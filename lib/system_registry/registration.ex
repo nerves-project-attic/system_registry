@@ -42,6 +42,10 @@ defmodule SystemRegistry.Registration do
 
   # GenServer API
 
+  def init(args) do
+    {:ok, args}
+  end
+
   def handle_call({:register, pid, opts}, _, s) do
     key = opts[:key] || :global
     reply = Registry.lookup(S, key) |> strip()

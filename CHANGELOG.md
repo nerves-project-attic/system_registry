@@ -1,5 +1,9 @@
 # SystemRegistry
 
+## v0.6.1
+  * Enhancements
+    * Fix Elixir 1.6 warnings
+
 ## v0.6.0
   * Enhancements
     * Added `SystemRegistry.Task` for a supervised process that executes a function
