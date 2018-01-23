@@ -1,5 +1,9 @@
 # SystemRegistry
 
+## v0.7.0
+  * Enhancements
+    * Moved Term Storage out to its own app
+
 ## v0.6.1
   * Enhancements
     * Fix Elixir 1.6 warnings
