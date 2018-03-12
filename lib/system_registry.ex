@@ -38,7 +38,7 @@ defmodule SystemRegistry do
   @spec commit(Transaction.t) ::
     {:ok, {new :: map, old :: map}} | {:error, term}
   def commit(transaction) do
-    GenServer.call(Local, {:commit, transaction})
+    GenServer.call(Local, {:commit, transaction}, :infinity)
   end
 
   @doc """
@@ -95,7 +95,7 @@ defmodule SystemRegistry do
     {:ok, {new :: map, old :: map}} | {:error, term}
   def update_in(scope, fun, opts \\ []) do
     t = Transaction.begin(opts)
-    GenServer.call(Local, {:update_in, t, scope, fun})
+    GenServer.call(Local, {:update_in, t, scope, fun}, :infinity)
   end
 
   @doc """
@@ -182,7 +182,7 @@ defmodule SystemRegistry do
   @spec delete_all(pid | nil) ::
     {:ok, {new :: map, old :: map}} | {:error, term}
   def delete_all(pid \\ nil) do
-    GenServer.call(Local, {:delete_all, (pid || self())})
+    GenServer.call(Local, {:delete_all, (pid || self())}, :infinity)
   end
 
   @doc """

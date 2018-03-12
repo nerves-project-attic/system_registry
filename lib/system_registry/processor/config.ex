@@ -10,7 +10,7 @@ defmodule SystemRegistry.Processor.Config do
   import SystemRegistry.Utils
 
   def put_priorities(priorities) do
-    GenServer.call(__MODULE__, {:put_priorities, priorities})
+    GenServer.call(__MODULE__, {:put_priorities, priorities}, :infinity)
   end
 
   def init(opts) do
