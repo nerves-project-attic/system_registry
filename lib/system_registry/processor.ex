@@ -18,11 +18,11 @@ defmodule SystemRegistry.Processor do
       end
 
       def validate(pid, transaction) do
-        GenServer.call(pid, {:validate, transaction})
+        GenServer.call(pid, {:validate, transaction}, :infinity)
       end
 
       def commit(pid, transaction) do
-        GenServer.call(pid, {:commit, transaction})
+        GenServer.call(pid, {:commit, transaction}, :infinity)
       end
 
       def init(opts) do

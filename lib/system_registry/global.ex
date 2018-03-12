@@ -9,15 +9,15 @@ defmodule SystemRegistry.Global do
   end
 
   def put(scope, value) do
-    GenServer.call(__MODULE__, {:put, scope, value})
+    GenServer.call(__MODULE__, {:put, scope, value}, :infinity)
   end
 
   def apply_updates(updates, nodes) do
-    GenServer.call(__MODULE__, {:update, updates, nodes})
+    GenServer.call(__MODULE__, {:update, updates, nodes}, :infinity)
   end
 
   def apply_deletes(deletes, nodes) do
-    GenServer.call(__MODULE__, {:delete, deletes, nodes})
+    GenServer.call(__MODULE__, {:delete, deletes, nodes}, :infinity)
   end
 
   def init(_) do

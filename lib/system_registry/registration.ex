@@ -25,19 +25,19 @@ defmodule SystemRegistry.Registration do
   end
 
   def register(pid \\ nil, opts) do
-    GenServer.call(__MODULE__, {:register, (pid || self()), opts})
+    GenServer.call(__MODULE__, {:register, (pid || self()), opts}, :infinity)
   end
 
   def unregister(pid \\ nil, key) do
-    GenServer.call(__MODULE__, {:unregister, (pid || self()), key})
+    GenServer.call(__MODULE__, {:unregister, (pid || self()), key}, :infinity)
   end
 
   def unregister_all(pid \\ nil) do
-    GenServer.call(__MODULE__, {:unregister, (pid || self())})
+    GenServer.call(__MODULE__, {:unregister, (pid || self())}, :infinity)
   end
 
   def notify(key, value) do
-    GenServer.call(__MODULE__, {:notify, key, value})
+    GenServer.call(__MODULE__, {:notify, key, value}, :infinity)
   end
 
   # GenServer API

@@ -14,7 +14,7 @@ defmodule SystemRegistry.Local do
   end
 
   def register_processor({mod, pid}) do
-    GenServer.call(__MODULE__, {:register_processor, {mod, pid}})
+    GenServer.call(__MODULE__, {:register_processor, {mod, pid}}, :infinity)
   end
 
   # GenServer API
