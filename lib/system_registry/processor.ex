@@ -1,12 +1,11 @@
 defmodule SystemRegistry.Processor do
-
   @doc "Handles a validation. Takes a transaction, and returns {:ok, reply, state} or {:error, reason, state}."
-  @callback handle_validate(SystemRegistry.Transaction.t, state :: term) ::
-    {:ok, term, state :: term} | {:error, reason :: term, state :: term}
+  @callback handle_validate(SystemRegistry.Transaction.t(), state :: term) ::
+              {:ok, term, state :: term} | {:error, reason :: term, state :: term}
 
   @doc "Handles a commit. Takes a transaction and returns {:ok, reply, state} | {:error, reason, state}."
-  @callback handle_commit(SystemRegistry.Transaction.t, state :: term) ::
-    {:ok, term, state :: term} | {:error, reason :: term, state :: term}
+  @callback handle_commit(SystemRegistry.Transaction.t(), state :: term) ::
+              {:ok, term, state :: term} | {:error, reason :: term, state :: term}
 
   defmacro __using__(_opts) do
     quote do
@@ -29,18 +28,19 @@ defmodule SystemRegistry.Processor do
         {:ok, opts}
       end
 
-      defoverridable [init: 1]
+      defoverridable init: 1
     end
   end
 
   def call(processors, fun, args) do
     errors =
-      Enum.reduce(processors, [], fn ({mod, pid}, errors) ->
+      Enum.reduce(processors, [], fn {mod, pid}, errors ->
         case apply(mod, fun, [pid | args]) do
           {:ok, _result} -> errors
           {:error, error} -> [error | errors]
         end
       end)
+
     case errors do
       [] -> :ok
       errors -> {:error, errors}

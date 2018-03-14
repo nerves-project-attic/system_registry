@@ -7,7 +7,7 @@ defmodule SystemRegistry.Local do
   alias SystemRegistry.Storage.State, as: S
 
   import SystemRegistry.Utils
-  #import SystemRegistry.Transaction
+  # import SystemRegistry.Transaction
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, [opts], name: __MODULE__)
@@ -20,10 +20,11 @@ defmodule SystemRegistry.Local do
   # GenServer API
 
   def init(_opts) do
-    {:ok, %{
-      processors: [],
-      monitors: []
-    }}
+    {:ok,
+     %{
+       processors: [],
+       monitors: []
+     }}
   end
 
   def handle_call({:register_processor, {mod, pid}}, _from, s) do
@@ -40,8 +41,9 @@ defmodule SystemRegistry.Local do
       Registry.lookup(S, t.key)
       |> strip()
       |> get_in(scope)
+
     value = fun.(value)
-      t = Transaction.update(t, scope, value)
+    t = Transaction.update(t, scope, value)
     {reply, s} = commit(t, s)
     {:reply, reply, s}
   end
@@ -60,8 +62,8 @@ defmodule SystemRegistry.Local do
 
   defp delete_all(pid, s) do
     frag =
-    Registry.lookup(S, pid)
-    |> strip()
+      Registry.lookup(S, pid)
+      |> strip()
 
     t = Transaction.begin()
 
@@ -71,14 +73,12 @@ defmodule SystemRegistry.Local do
   end
 
   defp commit(%Transaction{pid: pid} = t, s) do
-    with                    t <- Transaction.prepare(t),
-                          :ok <- Processor.call(s.processors, :validate, [t]),
-   {:ok, {new, _old} = delta} <- Transaction.commit(t),
-                            s <- monitor(pid, s),
-                          :ok <- Registration.notify(pid, new),
-                          :ok <- Processor.call(s.processors, :commit, [t]) do
-
-
+    with t <- Transaction.prepare(t),
+         :ok <- Processor.call(s.processors, :validate, [t]),
+         {:ok, {new, _old} = delta} <- Transaction.commit(t),
+         s <- monitor(pid, s),
+         :ok <- Registration.notify(pid, new),
+         :ok <- Processor.call(s.processors, :commit, [t]) do
       {{:ok, delta}, s}
     else
       error ->
@@ -87,7 +87,7 @@ defmodule SystemRegistry.Local do
   end
 
   defp monitor(pid, s) do
-    if Enum.any?(s.monitors, fn({m_pid, _ref}) -> m_pid == pid end) do
+    if Enum.any?(s.monitors, fn {m_pid, _ref} -> m_pid == pid end) do
       s
     else
       monitors = [{pid, Process.monitor(pid)} | s.monitors]
@@ -96,8 +96,7 @@ defmodule SystemRegistry.Local do
   end
 
   defp demonitor(pid, s) do
-    {[{_, ref}], monitors} =
-      Enum.split_with(s.monitors, fn({m_pid, _}) -> m_pid == pid end)
+    {[{_, ref}], monitors} = Enum.split_with(s.monitors, fn {m_pid, _} -> m_pid == pid end)
     Process.demonitor(ref)
     %{s | monitors: monitors}
   end

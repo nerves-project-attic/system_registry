@@ -2,24 +2,24 @@ defmodule SystemRegistry.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :system_registry,
-     version: "0.8.0-dev",
-     elixir: "~> 1.4",
-     start_permanent: Mix.env == :prod,
-     description: description(),
-     package: package(),
-     docs: docs(),
-     deps: deps()]
+    [
+      app: :system_registry,
+      version: "0.8.0-dev",
+      elixir: "~> 1.4",
+      start_permanent: Mix.env() == :prod,
+      description: description(),
+      package: package(),
+      docs: docs(),
+      deps: deps()
+    ]
   end
 
   def application do
-    [extra_applications: [:logger],
-     mod: {SystemRegistry.Application, []}]
+    [extra_applications: [:logger], mod: {SystemRegistry.Application, []}]
   end
 
   defp docs do
-    [extras: ["README.md"],
-     main: "readme"]
+    [extras: ["README.md"], main: "readme"]
   end
 
   defp description do
@@ -29,9 +29,11 @@ defmodule SystemRegistry.Mixfile do
   end
 
   defp package do
-    [maintainers: ["Justin Schneck"],
-     licenses: ["Apache 2.0"],
-     links: %{"Github" => "https://github.com/nerves-project/system_registry"}]
+    [
+      maintainers: ["Justin Schneck"],
+      licenses: ["Apache 2.0"],
+      links: %{"Github" => "https://github.com/nerves-project/system_registry"}
+    ]
   end
 
   defp deps do

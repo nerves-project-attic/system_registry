@@ -10,12 +10,14 @@ defmodule SystemRegistry.Processor.StateTest do
     scope = [:state, root, :a]
     value = 1
     {:ok, _} = SR.update(scope, value)
+
     assert ^value =
-      SR.match(:global, :_)
-      |> get_in(scope)
+             SR.match(:global, :_)
+             |> get_in(scope)
+
     assert ^value =
-      SR.match(self(), :_)
-      |> get_in(scope)
+             SR.match(self(), :_)
+             |> get_in(scope)
   end
 
   test "failed validation for updating other owners keys", %{root: root} do
@@ -34,7 +36,7 @@ defmodule SystemRegistry.Processor.StateTest do
     SR.transaction()
     |> SR.update([:state, root, :a, :b], 1)
     |> SR.update([:state, root, :a, :c], 1)
-    |> SR.commit
+    |> SR.commit()
 
     assert %{state: %{^root => %{a: %{b: 1, c: 1}}}} = SR.match(self(), %{state: %{root => %{}}})
     {:ok, _} = SR.delete_all()
@@ -44,13 +46,14 @@ defmodule SystemRegistry.Processor.StateTest do
 
   defp update_task(scope, value) do
     parent = self()
+
     {:ok, task} =
       Task.start(fn ->
         send(parent, SR.update(scope, value))
         Process.sleep(:infinity)
       end)
+
     assert_receive {:ok, delta}
     {delta, task}
   end
-
 end

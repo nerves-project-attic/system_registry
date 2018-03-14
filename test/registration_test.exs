@@ -46,33 +46,33 @@ defmodule SystemRegistry.RegistrationTest do
 
   test "global notification delivery", %{root: root} do
     SR.register()
-    SR.update([],  %{state: %{root => %{a: 1}}})
+    SR.update([], %{state: %{root => %{a: 1}}})
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
   end
 
   test "rate limited notification delivery", %{root: root} do
     SR.register(min_interval: 50)
-    SR.update([],  %{state: %{root => %{a: 1}}})
+    SR.update([], %{state: %{root => %{a: 1}}})
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
-    SR.update([],  %{state: %{root => %{a: 2}}})
+    SR.update([], %{state: %{root => %{a: 2}}})
     refute_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 10)
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 80)
   end
 
   test "rate limit of 0 should dispatch every message", %{root: root} do
     SR.register()
-    SR.update([],  %{state: %{root => %{a: 1}}})
+    SR.update([], %{state: %{root => %{a: 1}}})
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
-    SR.update([],  %{state: %{root => %{a: 2}}})
+    SR.update([], %{state: %{root => %{a: 2}}})
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 10)
   end
 
   test "hysteresis opts for rate limiting", %{root: root} do
     SR.register(hysteresis: 20, min_interval: 100)
-    SR.update([],  %{state: %{root => %{a: 1}}})
+    SR.update([], %{state: %{root => %{a: 1}}})
     refute_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 20)
-    SR.update([],  %{state: %{root => %{a: 2}}})
+    SR.update([], %{state: %{root => %{a: 2}}})
     refute_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 50)
     assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 50)
   end
@@ -94,19 +94,23 @@ defmodule SystemRegistry.RegistrationTest do
   test "converting a inner node to a leaf should clean up bindings", %{root: root} do
     SR.update([:state, root, :a, :b], 1)
     SR.update([:state, root, :a], 1)
+
     reg =
       Registry.lookup(B, {:global, [:state, root, :a, :b]})
       |> SR.Utils.strip()
+
     assert reg == []
   end
 
   defp update_task(scope, value) do
     parent = self()
+
     {:ok, task} =
       Task.start(fn ->
         send(parent, SR.update(scope, value))
         Process.sleep(:infinity)
       end)
+
     assert_receive {:ok, delta}
     {delta, task}
   end

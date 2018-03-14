@@ -23,7 +23,7 @@ defmodule SystemRegistry.Task do
   @doc """
   Starts a task as part of a supervision tree.
   """
-  @spec start_link(SystemRegistry.scope, (() -> any), [term]) :: {:ok, pid}
+  @spec start_link(SystemRegistry.scope(), (() -> any), [term]) :: {:ok, pid}
   def start_link(scope, fun, opts \\ []) do
     GenServer.start_link(__MODULE__, {scope, fun}, opts)
   end
@@ -33,11 +33,13 @@ defmodule SystemRegistry.Task do
   @doc false
   def init({scope, fun}) do
     SystemRegistry.register()
-    {:ok, %{
-      scope: scope,
-      fun: fun,
-      value: nil
-    }}
+
+    {:ok,
+     %{
+       scope: scope,
+       fun: fun,
+       value: nil
+     }}
   end
 
   def handle_info({:system_registry, :global, registry}, state) do
@@ -48,6 +50,7 @@ defmodule SystemRegistry.Task do
   defp handle_update(value, %{value: value} = state) do
     {:noreply, state}
   end
+
   defp handle_update(new_value, %{value: old_value} = state) do
     state.fun.({new_value, old_value})
     {:noreply, %{state | value: new_value}}
