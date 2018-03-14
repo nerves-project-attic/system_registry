@@ -45,7 +45,7 @@ defmodule SystemRegistryTest do
     SR.transaction()
     |> SR.update([root, :a, :b], 1)
     |> SR.update([root, :a, :c], 1)
-    |> SR.commit
+    |> SR.commit()
 
     assert %{^root => %{a: %{b: 1, c: 1}}} = SR.match(self(), %{root => %{}})
     {:ok, _} = SR.delete_all()
@@ -95,5 +95,4 @@ defmodule SystemRegistryTest do
     assert Node.binding(self, leaf_scope) == nil
     assert Node.binding(self, inter_scope) == nil
   end
-
 end

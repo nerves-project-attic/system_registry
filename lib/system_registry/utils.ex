@@ -1,10 +1,10 @@
 defmodule SystemRegistry.Utils do
   @moduledoc false
 
-  alias SystemRegistry.Storage.State,     as: S
+  alias SystemRegistry.Storage.State, as: S
 
   def strip(values) do
-    (Enum.map(values, fn({_, result}) -> result end) |> List.first) || []
+    Enum.map(values, fn {_, result} -> result end) |> List.first() || []
   end
 
   def deep_merge(left, right) do
@@ -27,5 +27,4 @@ defmodule SystemRegistry.Utils do
   def global do
     Registry.lookup(S, :global) |> strip
   end
-
 end

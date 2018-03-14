@@ -33,7 +33,9 @@ defmodule SystemRegistry.Processor.ConfigTest do
     Process.exit(task, :kill)
   end
 
-  test "return error if transaction priority is not declared in application configuration", %{root: root} do
+  test "return error if transaction priority is not declared in application configuration", %{
+    root: root
+  } do
     put_priorities(@explicit)
     assert {:error, _} = SR.update([:config, root, :a], 1, priority: :pd)
   end
@@ -59,11 +61,13 @@ defmodule SystemRegistry.Processor.ConfigTest do
 
   defp update_task(key, scope, value) do
     parent = self()
+
     {:ok, task} =
       Task.start(fn ->
         send(parent, SR.update(key, scope, value))
         Process.sleep(:infinity)
       end)
+
     assert_receive {:ok, delta}
     {delta, task}
   end
@@ -71,5 +75,4 @@ defmodule SystemRegistry.Processor.ConfigTest do
   defp put_priorities(priorities) do
     SystemRegistry.Processor.Config.put_priorities(priorities)
   end
-
 end

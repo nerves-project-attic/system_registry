@@ -6,4 +6,4 @@ config :system_registry, SystemRegistry.TermStorage,
   scopes: [
     [:config, :a]
   ],
-  path: File.cwd!() |> Path.join("test/tmp") |> Path.expand
+  path: File.cwd!() |> Path.join("test/tmp") |> Path.expand()

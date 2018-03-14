@@ -27,7 +27,7 @@ defmodule SystemRegistry do
       {:ok, {%{a: 1}, %{}}}
 
   """
-  @spec transaction(opts :: Keyword.t) :: Transaction.t
+  @spec transaction(opts :: Keyword.t()) :: Transaction.t()
   def transaction(opts \\ []) do
     Transaction.begin(opts)
   end
@@ -35,8 +35,7 @@ defmodule SystemRegistry do
   @doc """
     Commit a transaction. Attempts to apply all changes. If successful, will notify_all.
   """
-  @spec commit(Transaction.t) ::
-    {:ok, {new :: map, old :: map}} | {:error, term}
+  @spec commit(Transaction.t()) :: {:ok, {new :: map, old :: map}} | {:error, term}
   def commit(transaction) do
     GenServer.call(Local, {:commit, transaction})
   end
@@ -65,13 +64,16 @@ defmodule SystemRegistry do
       iex>  SystemRegistry.update([:a, :b], 1)
       {:ok, {%{a: %{b: 1}}, %{}}}
   """
-  @spec update(one, scope, value :: any) :: Transaction.t when one: Transaction.t
+  @spec update(one, scope, value :: any) :: Transaction.t() when one: Transaction.t()
   def update(_, _, _ \\ nil)
+
   def update(%Transaction{} = t, scope, value) when not is_nil(scope) do
     Transaction.update(t, scope, value)
   end
 
-  @spec update(one, value :: any, opts :: Keyword.t) :: {:ok, {new :: map, old :: map}} | {:error, term} when one: scope
+  @spec update(one, value :: any, opts :: Keyword.t()) ::
+          {:ok, {new :: map, old :: map}} | {:error, term}
+        when one: scope
   def update(scope, value, opts) do
     transaction(opts)
     |> update(scope, value)
@@ -92,7 +94,7 @@ defmodule SystemRegistry do
       {:ok, {%{a: [2, 1]}, %{a: [1]}}}
   """
   @spec update_in(scope, (term -> term), opts :: keyword()) ::
-    {:ok, {new :: map, old :: map}} | {:error, term}
+          {:ok, {new :: map, old :: map}} | {:error, term}
   def update_in(scope, fun, opts \\ []) do
     t = Transaction.begin(opts)
     GenServer.call(Local, {:update_in, t, scope, fun})
@@ -115,13 +117,16 @@ defmodule SystemRegistry do
       iex> SystemRegistry.transaction |> SystemRegistry.move([:a], [:b]) |> SystemRegistry.commit
       {:ok, {%{b: 1}, %{a: 1}}}
   """
-  @spec move(transaction, scope, scope) :: Transaction.t when transaction: Transaction.t
+  @spec move(transaction, scope, scope) :: Transaction.t() when transaction: Transaction.t()
   def move(_, _, _ \\ nil)
+
   def move(%Transaction{} = t, old_scope, new_scope) when not is_nil(new_scope) do
     Transaction.move(t, old_scope, new_scope)
   end
 
-  @spec move(scope_arg, scope, opts :: nil | Keyword.t) :: {:ok, {new :: map, old :: map}} | {:error, term} when scope_arg: scope
+  @spec move(scope_arg, scope, opts :: nil | Keyword.t()) ::
+          {:ok, {new :: map, old :: map}} | {:error, term}
+        when scope_arg: scope
   def move(old_scope, new_scope, opts) do
     transaction(opts)
     |> move(old_scope, new_scope)
@@ -154,21 +159,21 @@ defmodule SystemRegistry do
       {:ok, {%{}, %{a: %{b: 1}}}}
 
   """
-  @spec delete(transaction, scope) :: Transaction.t when transaction: Transaction.t
+  @spec delete(transaction, scope) :: Transaction.t() when transaction: Transaction.t()
   def delete(_, _ \\ nil)
+
   def delete(%Transaction{} = t, scope) when not is_nil(scope) do
     Transaction.delete(t, scope)
   end
 
-  @spec delete(scope, Keyword.t | nil) :: {:ok, {new :: map, old :: map}} | {:error, term}
+  @spec delete(scope, Keyword.t() | nil) :: {:ok, {new :: map, old :: map}} | {:error, term}
   def delete(scope, opts) do
     opts = opts || []
+
     transaction(opts)
     |> delete(scope)
     |> commit()
   end
-
-
 
   @doc """
     Delete all keys owned by the calling process.
@@ -179,10 +184,9 @@ defmodule SystemRegistry do
       {:ok, {%{}, %{a: %{b: 1}}}}
 
   """
-  @spec delete_all(pid | nil) ::
-    {:ok, {new :: map, old :: map}} | {:error, term}
+  @spec delete_all(pid | nil) :: {:ok, {new :: map, old :: map}} | {:error, term}
   def delete_all(pid \\ nil) do
-    GenServer.call(Local, {:delete_all, (pid || self())})
+    GenServer.call(Local, {:delete_all, pid || self()})
   end
 
   @doc """
@@ -199,8 +203,8 @@ defmodule SystemRegistry do
   """
   @spec match(key :: term, match_spec :: term) :: map
   def match(key \\ :global, match_spec) do
-    value =
-      Registry.match(S, key, match_spec) |> strip()
+    value = Registry.match(S, key, match_spec) |> strip()
+
     case value do
       [] -> %{}
       value -> value
@@ -276,10 +280,10 @@ defmodule SystemRegistry do
       [{:system_registry, :global, %{state: %{a: 2}}}]
 
   """
-  @spec register(opts :: keyword) ::
-    :ok | {:error, term}
+  @spec register(opts :: keyword) :: :ok | {:error, term}
   def register(opts \\ []) do
     key = opts[:key] || :global
+
     case Registration.registered?(key) do
       true -> {:error, :already_registered}
       false -> Registration.register(opts)
@@ -289,8 +293,7 @@ defmodule SystemRegistry do
   @doc """
     Unregister process from receiving notifications
   """
-  @spec unregister(key :: term) ::
-    :ok | {:error, term}
+  @spec unregister(key :: term) :: :ok | {:error, term}
   def unregister(key \\ :global) do
     Registration.unregister(key)
   end
@@ -298,10 +301,8 @@ defmodule SystemRegistry do
   @doc """
     Unregister process from receiving notifications
   """
-  @spec unregister_all(pid | nil) ::
-    :ok | {:error, term}
+  @spec unregister_all(pid | nil) :: :ok | {:error, term}
   def unregister_all(pid \\ nil) do
-    Registration.unregister_all((pid || self()))
+    Registration.unregister_all(pid || self())
   end
-
 end
