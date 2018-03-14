@@ -3,9 +3,8 @@ defmodule SystemRegistry.Mixfile do
 
   def project do
     [app: :system_registry,
-     version: "0.7.0",
+     version: "0.8.0-dev",
      elixir: "~> 1.4",
-     build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      description: description(),
      package: package(),
@@ -32,10 +31,10 @@ defmodule SystemRegistry.Mixfile do
   defp package do
     [maintainers: ["Justin Schneck"],
      licenses: ["Apache 2.0"],
-     links: %{"Github" => "https://github.com/mobileoverlord/system_registry"}]
+     links: %{"Github" => "https://github.com/nerves-project/system_registry"}]
   end
 
   defp deps do
-    [{:ex_doc, "~> 0.15", only: :dev}]
+    [{:ex_doc, "~> 0.18", only: :dev}]
   end
 end
