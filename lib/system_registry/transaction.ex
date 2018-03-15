@@ -80,6 +80,16 @@ defmodule SystemRegistry.Transaction do
     %{t | delete_nodes: MapSet.put(t.delete_nodes, leaf), deletes: MapSet.put(t.deletes, leaf)}
   end
 
+  def delete_all(%__MODULE__{} = t, pid, key) do
+    nodes =
+      Registry.lookup(B, {:index, pid, key})
+      |> strip()
+
+    Enum.reduce(nodes, %{t | pid: pid, key: pid}, fn scope, transaction ->
+      delete(transaction, scope)
+    end)
+  end
+
   def prepare(%__MODULE__{} = t) do
     t
     |> prepare_deletes()
@@ -101,18 +111,28 @@ defmodule SystemRegistry.Transaction do
         {:error, :update_local}
 
       delta ->
-        remove_bindings(t.key, t.delete_nodes)
-        apply_bindings(t.key, t.update_nodes)
+        remove_bindings(t.pid, t.key, t.deletes, t.delete_nodes)
+        apply_bindings(t.pid, t.key, t.updates, t.update_nodes)
         {:ok, delta}
     end
   end
 
-  def apply_bindings(key, nodes) do
+  def apply_bindings(pid, key, mod, nodes) do
     Enum.map(nodes, &Registry.register(B, {key, &1.node}, &1))
+    leaf_nodes = Node.leaf_nodes(mod)
+    Registry.register(B, {:index, pid, key}, MapSet.new())
+
+    Registry.update_value(B, {:index, pid, key}, fn set ->
+      Enum.reduce(leaf_nodes, set, &MapSet.put(&2, &1))
+    end)
   end
 
-  def remove_bindings(key, nodes) do
+  def remove_bindings(pid, key, mod, nodes) do
     Enum.map(nodes, &remove_binding(key, &1.node))
+
+    Registry.update_value(B, {:index, pid, key}, fn set ->
+      Enum.reduce(mod, set, &MapSet.delete(&2, &1.node))
+    end)
   end
 
   def remove_binding(key, path) do

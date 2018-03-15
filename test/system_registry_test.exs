@@ -1,5 +1,5 @@
 defmodule SystemRegistryTest do
-  use ExUnit.Case
+  use SystemRegistryTest.Case
   doctest SystemRegistry
 
   alias SystemRegistry, as: SR

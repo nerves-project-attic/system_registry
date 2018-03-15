@@ -25,9 +25,9 @@ defmodule SystemRegistry.Application do
     state_opts = Application.get_env(:system_registry, SystemRegistry.Processor.State)
 
     workers = [
-      worker(SystemRegistry.Local, []),
       worker(SystemRegistry.Global, []),
       worker(SystemRegistry.Registration, []),
+      worker(SystemRegistry.Processor.Server, []),
       worker(SystemRegistry.Processor.State, [state_opts]),
       worker(SystemRegistry.Processor.Config, [config_opts])
     ]

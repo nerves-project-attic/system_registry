@@ -1,5 +1,5 @@
 defmodule SystemRegistry.NodeTest do
-  use ExUnit.Case, async: true
+  use SystemRegistryTest.Case
   doctest SystemRegistry.Node
 
   alias SystemRegistry.Node

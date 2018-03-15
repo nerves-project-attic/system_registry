@@ -14,7 +14,7 @@ defmodule SystemRegistry do
 
   @type scope :: [term]
 
-  alias SystemRegistry.{Local, Transaction, Registration}
+  alias SystemRegistry.{Transaction, Registration, Processor}
   alias SystemRegistry.Storage.State, as: S
   import SystemRegistry.Utils
 
@@ -37,7 +37,17 @@ defmodule SystemRegistry do
   """
   @spec commit(Transaction.t()) :: {:ok, {new :: map, old :: map}} | {:error, term}
   def commit(transaction) do
-    GenServer.call(Local, {:commit, transaction})
+    t =
+      Transaction.prepare(transaction)
+      |> Processor.Server.apply()
+
+    with {:ok, {new, _old} = delta} <- Transaction.commit(t),
+         :ok <- Registration.notify(t.pid, new) do
+      {:ok, delta}
+    else
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -75,8 +85,11 @@ defmodule SystemRegistry do
           {:ok, {new :: map, old :: map}} | {:error, term}
         when one: scope
   def update(scope, value, opts) do
+    opts = opts || []
+
     transaction(opts)
     |> update(scope, value)
+    |> Processor.Server.apply()
     |> commit()
   end
 
@@ -97,7 +110,17 @@ defmodule SystemRegistry do
           {:ok, {new :: map, old :: map}} | {:error, term}
   def update_in(scope, fun, opts \\ []) do
     t = Transaction.begin(opts)
-    GenServer.call(Local, {:update_in, t, scope, fun})
+
+    value =
+      Registry.lookup(S, t.key)
+      |> strip()
+      |> get_in(scope)
+
+    value = fun.(value)
+
+    Transaction.update(t, scope, value)
+    |> Processor.Server.apply()
+    |> commit()
   end
 
   @doc """
@@ -128,8 +151,11 @@ defmodule SystemRegistry do
           {:ok, {new :: map, old :: map}} | {:error, term}
         when scope_arg: scope
   def move(old_scope, new_scope, opts) do
+    opts = opts || []
+
     transaction(opts)
     |> move(old_scope, new_scope)
+    |> Processor.Server.apply()
     |> commit()
   end
 
@@ -172,6 +198,7 @@ defmodule SystemRegistry do
 
     transaction(opts)
     |> delete(scope)
+    |> Processor.Server.apply()
     |> commit()
   end
 
@@ -186,7 +213,12 @@ defmodule SystemRegistry do
   """
   @spec delete_all(pid | nil) :: {:ok, {new :: map, old :: map}} | {:error, term}
   def delete_all(pid \\ nil) do
-    GenServer.call(Local, {:delete_all, pid || self()})
+    pid = pid || self()
+
+    Transaction.begin()
+    |> Transaction.delete_all(pid, pid)
+    |> Processor.Server.apply()
+    |> commit()
   end
 
   @doc """
@@ -226,49 +258,41 @@ defmodule SystemRegistry do
 
     Examples
 
+      iex> purge_mailbox = fn (self) -> 
+      ...>   receive do
+      ...>     _ -> self.(self)
+      ...>   after
+      ...>     50 -> :ok
+      ...>   end
+      ...> end
       iex> SystemRegistry.register()
       :ok
-      iex> receive do
-      ...>   _ -> :ok
-      ...> after
-      ...>   0 -> :ok
-      ...> end
+      iex> purge_mailbox.(purge_mailbox)
       :ok
       iex> SystemRegistry.update([:state, :a], 1)
       {:ok, {%{state: %{a: 1}}, %{}}}
+      iex> :timer.sleep(50)
+      :ok
       iex> Process.info(self())[:messages]
       [{:system_registry, :global, %{state: %{a: 1}}}]
       iex> SystemRegistry.unregister()
       :ok
-      iex> receive do
-      ...>   _ -> :ok
-      ...> after
-      ...>   0 -> :ok
-      ...> end
+      iex> purge_mailbox.(purge_mailbox)
       :ok
       iex> SystemRegistry.delete_all()
       {:ok, {%{}, %{state: %{a: 1}}}}
       iex> SystemRegistry.register(hysteresis: 10, min_interval: 50)
       :ok
-      iex> receive do
-      ...>   _ -> :ok
-      ...> after
-      ...>   0 -> :ok
-      ...> end
-      :ok
+      iex> purge_mailbox.(purge_mailbox)
       iex> SystemRegistry.update([:state, :a], 1)
       {:ok, {%{state: %{a: 1}}, %{}}}
+      iex> :timer.sleep(10)
       iex> Process.info(self())[:messages]
       []
       iex> :timer.sleep(15)
-      :ok
       iex> Process.info(self())[:messages]
       [{:system_registry, :global, %{state: %{a: 1}}}]
-      iex> receive do
-      ...>   _ -> :ok
-      ...> after
-      ...>   0 -> :ok
-      ...> end
+      iex> purge_mailbox.(purge_mailbox)
       :ok
       iex> SystemRegistry.update([:state, :a], 2)
       {:ok, {%{state: %{a: 2}}, %{state: %{a: 1}}}}

@@ -38,7 +38,7 @@ defmodule SystemRegistry.Registration do
   end
 
   def notify(key, value) do
-    GenServer.call(__MODULE__, {:notify, key, value})
+    GenServer.cast(__MODULE__, {:notify, key, value})
   end
 
   # GenServer API
@@ -85,7 +85,7 @@ defmodule SystemRegistry.Registration do
     {:reply, :ok, s}
   end
 
-  def handle_call({:notify, key, value}, _, s) do
+  def handle_cast({:notify, key, value}, s) do
     Registry.update_value(R, key, fn registrants ->
       {limited, ready} =
         registrants
@@ -100,7 +100,7 @@ defmodule SystemRegistry.Registration do
       ready ++ limited
     end)
 
-    {:reply, :ok, s}
+    {:noreply, s}
   end
 
   def handle_info({:hysteresis_expired, %__MODULE__{} = reg}, s) do

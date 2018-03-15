@@ -1,6 +1,8 @@
 defmodule SystemRegistry.Processor.StateTest do
-  use ExUnit.Case
+  use SystemRegistryTest.Case
   alias SystemRegistry, as: SR
+
+  @sleep 20
 
   setup ctx do
     %{root: ctx.test}
@@ -10,6 +12,7 @@ defmodule SystemRegistry.Processor.StateTest do
     scope = [:state, root, :a]
     value = 1
     {:ok, _} = SR.update(scope, value)
+    :timer.sleep(@sleep)
 
     assert ^value =
              SR.match(:global, :_)
@@ -23,13 +26,27 @@ defmodule SystemRegistry.Processor.StateTest do
   test "failed validation for updating other owners keys", %{root: root} do
     update = %{state: %{root => %{a: 1}}}
     update_task([], update)
-    assert {:error, _} = SR.update([], update)
+
+    t =
+      SR.transaction(notify_on_error: true)
+      |> SR.update([], update)
+
+    SR.commit(t)
+    :timer.sleep(@sleep)
+    assert_receive({:system_registry, :transaction_failed, {^t, _}})
   end
 
   test "failed validation for deleting other owners keys", %{root: root} do
     update = %{state: %{root => %{a: 1}}}
     update_task([], update)
-    assert {:error, _} = SR.delete([:state, root, :a])
+
+    t =
+      SR.transaction(notify_on_error: true)
+      |> SR.delete([:state, root, :a])
+
+    SR.commit(t)
+    :timer.sleep(@sleep)
+    assert_receive({:system_registry, :transaction_failed, {^t, _}})
   end
 
   test "owner can delete all from state", %{root: root} do
@@ -38,8 +55,10 @@ defmodule SystemRegistry.Processor.StateTest do
     |> SR.update([:state, root, :a, :c], 1)
     |> SR.commit()
 
+    :timer.sleep(@sleep)
     assert %{state: %{^root => %{a: %{b: 1, c: 1}}}} = SR.match(self(), %{state: %{root => %{}}})
     {:ok, _} = SR.delete_all()
+    :timer.sleep(@sleep)
     value = SR.match(:_)
     assert get_in(value, [:state, root]) == nil
   end
@@ -52,7 +71,7 @@ defmodule SystemRegistry.Processor.StateTest do
         send(parent, SR.update(scope, value))
         Process.sleep(:infinity)
       end)
-
+    
     assert_receive {:ok, delta}
     {delta, task}
   end
