@@ -56,9 +56,11 @@ Processors are workers that implement the `SystemRegistry.Processor` behaviour
 and are the only means of moving data from local fragments to the global state. 
 Processors implement two callback methods: `handle_validate/2` and `handle_commit/2`. 
 A transaction can only be committed if all processors return `:ok` during the 
-validation sequence. Processor validation errors are accumulated and returned in 
-the case of an unsuccessful commit. SystemRegistry automatically starts two 
-processors for state and config.
+validation sequence. If a transaction fails validation, it will only return an error 
+to the caller if the transaction option `:notify_on_error` is `true`. Transactions 
+that result in errors will not clean up the local fragment state. Processor validation 
+errors are accumulated and returned in the case of an unsuccessful commit. 
+SystemRegistry automatically starts two processors for state and config.
 
 **Global State Processor**
 

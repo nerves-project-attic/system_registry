@@ -3,7 +3,7 @@ defmodule SystemRegistry.Processor.Config do
 
   @mount :config
 
-  alias SystemRegistry.{Transaction, Global, Registration}
+  alias SystemRegistry.{Transaction, Global}
   alias SystemRegistry.Storage.State, as: S
 
   import SystemRegistry.Processor.Utils
@@ -55,8 +55,6 @@ defmodule SystemRegistry.Processor.Config do
       producers = [{priority, t.pid} | s.producers]
       s = %{s | producers: producers}
       Global.put(s.mount, merge(s))
-      global = SystemRegistry.match(:global, :_)
-      Registration.notify(:global, global)
       {:ok, :ok, s}
     else
       {:ok, :ok, s}

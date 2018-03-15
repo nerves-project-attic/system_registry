@@ -1,9 +1,11 @@
 defmodule SystemRegistry.RegistrationTest do
-  use ExUnit.Case, async: false
+  use SystemRegistryTest.Case
 
   alias SystemRegistry, as: SR
   alias SystemRegistry.Registration
   alias SystemRegistry.Storage.Binding, as: B
+
+  @sleep 20
 
   setup ctx do
     flush(200)
@@ -14,6 +16,7 @@ defmodule SystemRegistry.RegistrationTest do
     scope = [:state, root, :a]
     value = 1
     SR.update(scope, value)
+    :timer.sleep(@sleep)
     :ok = SR.register(min_interval: 50)
     assert_receive {:system_registry, :global, state}
     assert ^value = get_in(state, scope)
@@ -53,10 +56,10 @@ defmodule SystemRegistry.RegistrationTest do
   test "rate limited notification delivery", %{root: root} do
     SR.register(min_interval: 50)
     SR.update([], %{state: %{root => %{a: 1}}})
-    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 60)
     SR.update([], %{state: %{root => %{a: 2}}})
-    refute_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 10)
-    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 80)
+    refute_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 20)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 60)
   end
 
   test "rate limit of 0 should dispatch every message", %{root: root} do
@@ -88,12 +91,19 @@ defmodule SystemRegistry.RegistrationTest do
   test "cannot convert an inner node into a leaf node", %{root: root} do
     update_task([:state, root, :a, :b], 1)
     SR.register()
-    assert {:error, _} = SR.update([:state, root, :a], 1)
+
+    t =
+      SR.transaction(notify_on_error: true)
+      |> SR.update([:state, root, :a], 1)
+
+    SR.commit(t)
+    assert_receive({:system_registry, :transaction_failed, {^t, _}})
   end
 
   test "converting a inner node to a leaf should clean up bindings", %{root: root} do
     SR.update([:state, root, :a, :b], 1)
     SR.update([:state, root, :a], 1)
+    :timer.sleep(@sleep)
 
     reg =
       Registry.lookup(B, {:global, [:state, root, :a, :b]})

@@ -7,6 +7,7 @@ defmodule SystemRegistry.Mixfile do
       version: "0.8.0-dev",
       elixir: "~> 1.4",
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       description: description(),
       package: package(),
       docs: docs(),
@@ -17,6 +18,9 @@ defmodule SystemRegistry.Mixfile do
   def application do
     [extra_applications: [:logger], mod: {SystemRegistry.Application, []}]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp docs do
     [extras: ["README.md"], main: "readme"]

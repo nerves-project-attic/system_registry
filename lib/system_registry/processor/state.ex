@@ -3,7 +3,7 @@ defmodule SystemRegistry.Processor.State do
 
   @mount :state
 
-  alias SystemRegistry.{Transaction, Global, Registration, Node}
+  alias SystemRegistry.{Transaction, Global, Node}
 
   import SystemRegistry.Processor.Utils
 
@@ -55,35 +55,23 @@ defmodule SystemRegistry.Processor.State do
     {update_nodes, updates} = updates(t, s.mount)
     {delete_nodes, deletes} = deletes(t, s.mount)
 
-    deleted? = apply_deletes(deletes, delete_nodes)
-    updated? = apply_updates(updates, update_nodes, mount)
-
-    if updated? or deleted? do
-      global = SystemRegistry.match(:global, :_)
-      Registration.notify(:global, global)
-    end
+    apply_deletes(t.pid, deletes, delete_nodes)
+    apply_updates(t.pid, updates, update_nodes, mount)
 
     {:ok, :ok, s}
   end
 
-  def apply_updates(nil, _, _), do: false
+  def apply_updates(_, nil, _, _), do: false
 
-  def apply_updates(updates, nodes, mount) do
+  def apply_updates(pid, updates, nodes, mount) do
     updates = Map.put(%{}, mount, updates)
-
-    case Global.apply_updates(updates, nodes) do
-      {_, _} -> true
-      _error -> false
-    end
+    Global.apply_updates(pid, updates, nodes)
   end
 
-  def apply_deletes([], []), do: false
+  def apply_deletes(_, [], []), do: false
 
-  def apply_deletes(deletes, nodes) do
-    case Global.apply_deletes(deletes, nodes) do
-      {_, _} -> true
-      _error -> false
-    end
+  def apply_deletes(pid, deletes, nodes) do
+    Global.apply_deletes(pid, deletes, nodes)
   end
 
   def permissions(nodes, pid) do

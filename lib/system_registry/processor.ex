@@ -48,7 +48,7 @@ defmodule SystemRegistry.Processor do
   end
 
   def init({mod, opts}) do
-    SystemRegistry.Local.register_processor({mod, self()})
+    SystemRegistry.Processor.Server.register_processor({mod, self()})
     {:ok, opts} = mod.init(opts)
     {:ok, {mod, opts}}
   end
