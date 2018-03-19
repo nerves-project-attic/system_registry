@@ -1,6 +1,18 @@
 # SystemRegistry
 
-## v0.8.0-dev
+## v0.8.0
+
+  * Enhancements
+    * Decouple producers from global state server.
+   
+    Prior to 0.8.0, committing transactions would block system_registry until the 
+    transaction was applied or rejected. Callers are now detached from the global 
+    state server.
+
+    Important note:
+    This change in behaviour means that transactions that fail validation
+    will not return an error immediately. Instead, if a process is interested 
+    in errors, the transaction option `notify_on_error: true` must be set.
 
 ## v0.7.0
 
