@@ -167,6 +167,6 @@ defmodule SystemRegistry.Registration do
   end
 
   defp notify_reg(%__MODULE__{pid: pid}, key, value) do
-    send(pid, {:system_registry, key, value})
+    send(pid, {:system_registry, key, struct(SystemRegistry, data: value)})
   end
 end

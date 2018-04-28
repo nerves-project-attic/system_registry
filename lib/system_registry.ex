@@ -18,6 +18,13 @@ defmodule SystemRegistry do
   alias SystemRegistry.Storage.State, as: S
   import SystemRegistry.Utils
 
+  defstruct [:data]
+  defimpl Inspect, for: SystemRegistry do
+    def inspect(%SystemRegistry{} = _data, _opts) do
+      "#SystemRegistry<[]>"
+    end
+  end
+
   @doc """
     Returns a transaction struct to pass to update/3 and delete/4 to chain
     modifications to to group. Prevents notifying registrants for each action.
@@ -258,7 +265,7 @@ defmodule SystemRegistry do
 
     Examples
 
-      iex> purge_mailbox = fn (self) -> 
+      iex> purge_mailbox = fn (self) ->
       ...>   receive do
       ...>     _ -> self.(self)
       ...>   after
@@ -274,7 +281,7 @@ defmodule SystemRegistry do
       iex> :timer.sleep(50)
       :ok
       iex> Process.info(self())[:messages]
-      [{:system_registry, :global, %{state: %{a: 1}}}]
+      [{:system_registry, :global, %SystemRegistry{data: %{state: %{a: 1}}}}]
       iex> SystemRegistry.unregister()
       :ok
       iex> purge_mailbox.(purge_mailbox)
@@ -291,7 +298,7 @@ defmodule SystemRegistry do
       []
       iex> :timer.sleep(15)
       iex> Process.info(self())[:messages]
-      [{:system_registry, :global, %{state: %{a: 1}}}]
+      [{:system_registry, :global, %SystemRegistry{data: %{state: %{a: 1}}}}]
       iex> purge_mailbox.(purge_mailbox)
       :ok
       iex> SystemRegistry.update([:state, :a], 2)
@@ -301,7 +308,7 @@ defmodule SystemRegistry do
       iex> :timer.sleep(50)
       :ok
       iex> Process.info(self())[:messages]
-      [{:system_registry, :global, %{state: %{a: 2}}}]
+      [{:system_registry, :global, %SystemRegistry{data: %{state: %{a: 2}}}}]
 
   """
   @spec register(opts :: keyword) :: :ok | {:error, term}
