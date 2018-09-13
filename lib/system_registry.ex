@@ -89,7 +89,6 @@ defmodule SystemRegistry do
 
     transaction(opts)
     |> update(scope, value)
-    |> Processor.Server.apply()
     |> commit()
   end
 
@@ -119,7 +118,6 @@ defmodule SystemRegistry do
     value = fun.(value)
 
     Transaction.update(t, scope, value)
-    |> Processor.Server.apply()
     |> commit()
   end
 
@@ -155,7 +153,6 @@ defmodule SystemRegistry do
 
     transaction(opts)
     |> move(old_scope, new_scope)
-    |> Processor.Server.apply()
     |> commit()
   end
 
@@ -198,7 +195,6 @@ defmodule SystemRegistry do
 
     transaction(opts)
     |> delete(scope)
-    |> Processor.Server.apply()
     |> commit()
   end
 
@@ -217,7 +213,6 @@ defmodule SystemRegistry do
 
     Transaction.begin()
     |> Transaction.delete_all(pid, pid)
-    |> Processor.Server.apply()
     |> commit()
   end
 
