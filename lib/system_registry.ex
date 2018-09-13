@@ -81,7 +81,7 @@ defmodule SystemRegistry do
     Transaction.update(t, scope, value)
   end
 
-  @spec update(one, value :: any, opts :: Keyword.t()) ::
+  @spec update(one, value :: any, opts :: nil | Keyword.t()) ::
           {:ok, {new :: map, old :: map}} | {:error, term}
         when one: scope
   def update(scope, value, opts) do
