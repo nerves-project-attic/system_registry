@@ -17,6 +17,7 @@ defmodule SystemRegistry.Utils do
     result
   end
 
+  @spec deep_merge(map(), map()) :: map()
   def deep_merge(left, right) do
     Map.merge(left, right, &deep_resolve/3)
   end
@@ -34,6 +35,7 @@ defmodule SystemRegistry.Utils do
     right
   end
 
+  @spec global() :: any()
   def global do
     Registry.lookup(S, :global) |> strip
   end
