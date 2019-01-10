@@ -10,8 +10,8 @@ defmodule SystemRegistry.Registration do
 
   # Public API
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   def registered?(pid \\ nil, key) do
@@ -43,8 +43,8 @@ defmodule SystemRegistry.Registration do
 
   # GenServer API
 
-  def init(args) do
-    {:ok, args}
+  def init(_args) do
+    {:ok, nil}
   end
 
   def handle_call({:register, pid, opts}, _, s) do
