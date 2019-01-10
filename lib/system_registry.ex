@@ -258,50 +258,48 @@ defmodule SystemRegistry do
 
     Examples
 
-      iex> purge_mailbox = fn (self) -> 
+      iex> mailbox = fn ->
       ...>   receive do
-      ...>     _ -> self.(self)
+      ...>     msg -> msg
       ...>   after
-      ...>     50 -> :ok
+      ...>     5 -> nil
       ...>   end
       ...> end
       iex> SystemRegistry.register()
       :ok
-      iex> purge_mailbox.(purge_mailbox)
-      :ok
+      iex> mailbox.()
+      {:system_registry, :global, %{}}
       iex> SystemRegistry.update([:state, :a], 1)
       {:ok, {%{state: %{a: 1}}, %{}}}
       iex> :timer.sleep(50)
       :ok
-      iex> Process.info(self())[:messages]
-      [{:system_registry, :global, %{state: %{a: 1}}}]
+      iex> mailbox.()
+      {:system_registry, :global, %{state: %{a: 1}}}
       iex> SystemRegistry.unregister()
       :ok
-      iex> purge_mailbox.(purge_mailbox)
-      :ok
+      iex> mailbox.()
+      nil
       iex> SystemRegistry.delete_all()
       {:ok, {%{}, %{state: %{a: 1}}}}
       iex> SystemRegistry.register(hysteresis: 10, min_interval: 50)
       :ok
-      iex> purge_mailbox.(purge_mailbox)
-      iex> SystemRegistry.update([:state, :a], 1)
-      {:ok, {%{state: %{a: 1}}, %{}}}
-      iex> :timer.sleep(10)
-      iex> Process.info(self())[:messages]
-      []
-      iex> :timer.sleep(15)
-      iex> Process.info(self())[:messages]
-      [{:system_registry, :global, %{state: %{a: 1}}}]
-      iex> purge_mailbox.(purge_mailbox)
-      :ok
+      iex> mailbox.()
       iex> SystemRegistry.update([:state, :a], 2)
-      {:ok, {%{state: %{a: 2}}, %{state: %{a: 1}}}}
-      iex> Process.info(self())[:messages]
-      []
+      {:ok, {%{state: %{a: 2}}, %{}}}
+      iex> :timer.sleep(1)
+      iex> mailbox.()
+      nil
+      iex> :timer.sleep(15)
+      iex> mailbox.()
+      {:system_registry, :global, %{state: %{a: 2}}}
+      iex> SystemRegistry.update([:state, :a], 3)
+      {:ok, {%{state: %{a: 3}}, %{state: %{a: 2}}}}
+      iex> mailbox.()
+      nil
       iex> :timer.sleep(50)
       :ok
-      iex> Process.info(self())[:messages]
-      [{:system_registry, :global, %{state: %{a: 2}}}]
+      iex> mailbox.()
+      {:system_registry, :global, %{state: %{a: 3}}}
 
   """
   @spec register(opts :: keyword) :: :ok | {:error, term}
