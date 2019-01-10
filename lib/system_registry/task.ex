@@ -14,7 +14,7 @@ defmodule SystemRegistry.Task do
       end])
 
   This technique should be used sparingly and only for performing simple side
-  effects to state change. 
+  effects to state change.
 
   """
 
@@ -31,6 +31,7 @@ defmodule SystemRegistry.Task do
   # GenServer API
 
   @doc false
+  @impl true
   def init({scope, fun}) do
     SystemRegistry.register()
 
@@ -42,6 +43,7 @@ defmodule SystemRegistry.Task do
      }}
   end
 
+  @impl true
   def handle_info({:system_registry, :global, registry}, state) do
     new_value = get_in(registry, state.scope)
     handle_update(new_value, state)

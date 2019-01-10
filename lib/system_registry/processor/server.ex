@@ -16,10 +16,12 @@ defmodule SystemRegistry.Processor.Server do
     GenServer.call(__MODULE__, {:register_processor, {mod, pid}})
   end
 
+  @impl true
   def init(_args) do
     {:ok, []}
   end
 
+  @impl true
   def handle_cast({:apply, t}, processors) do
     with :ok <- Processor.call(processors, :validate, [t]),
          :ok <- Processor.call(processors, :commit, [t]) do
@@ -34,6 +36,7 @@ defmodule SystemRegistry.Processor.Server do
     {:noreply, processors}
   end
 
+  @impl true
   def handle_call({:register_processor, {mod, pid}}, _from, processors) do
     {:reply, :ok, [{mod, pid} | processors]}
   end

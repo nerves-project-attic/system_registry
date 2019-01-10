@@ -43,10 +43,12 @@ defmodule SystemRegistry.Registration do
 
   # GenServer API
 
+  @impl true
   def init(_args) do
     {:ok, nil}
   end
 
+  @impl true
   def handle_call({:register, pid, opts}, _, s) do
     key = opts[:key] || :global
     reply = Registry.lookup(S, key) |> strip()
@@ -60,6 +62,7 @@ defmodule SystemRegistry.Registration do
     {:reply, :ok, s}
   end
 
+  @impl true
   def handle_call({:unregister, pid, key}, _, s) do
     Registry.update_value(R, key, fn value ->
       Enum.reject(value, fn %{pid: reg} -> reg == pid end)
@@ -72,6 +75,7 @@ defmodule SystemRegistry.Registration do
     {:reply, :ok, s}
   end
 
+  @impl true
   def handle_call({:unregister, pid}, _, s) do
     Registry.lookup(B, pid)
     |> strip()
@@ -85,6 +89,7 @@ defmodule SystemRegistry.Registration do
     {:reply, :ok, s}
   end
 
+  @impl true
   def handle_cast({:notify, key, value}, s) do
     Registry.update_value(R, key, fn registrants ->
       {limited, ready} =
@@ -103,6 +108,7 @@ defmodule SystemRegistry.Registration do
     {:noreply, s}
   end
 
+  @impl true
   def handle_info({:hysteresis_expired, %__MODULE__{} = reg}, s) do
     value = Registry.lookup(S, reg.key) |> strip()
     notify_reg(reg, reg.key, value)
@@ -116,6 +122,7 @@ defmodule SystemRegistry.Registration do
     {:noreply, s}
   end
 
+  @impl true
   def handle_info({:min_interval_expired, %__MODULE__{} = reg}, s) do
     Registry.update_value(R, reg.key, fn registrants ->
       {reg, registrants} = Enum.split_with(registrants, &(&1.pid == reg.pid))

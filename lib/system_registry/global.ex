@@ -20,6 +20,7 @@ defmodule SystemRegistry.Global do
     GenServer.cast(__MODULE__, {:delete, pid, deletes, nodes})
   end
 
+  @impl true
   def init(_args) do
     Registry.register(S, :global, %{})
 
@@ -29,6 +30,7 @@ defmodule SystemRegistry.Global do
      }}
   end
 
+  @impl true
   def handle_cast({:put, scope, value}, s) do
     result =
       Registry.update_value(S, :global, fn r_value ->
@@ -42,6 +44,7 @@ defmodule SystemRegistry.Global do
     {:noreply, s}
   end
 
+  @impl true
   def handle_cast({:update, pid, updates, nodes}, s) do
     result =
       Registry.update_value(S, :global, fn value ->
@@ -53,6 +56,7 @@ defmodule SystemRegistry.Global do
     {:noreply, monitor(pid, s)}
   end
 
+  @impl true
   def handle_cast({:delete, pid, deletes, nodes}, s) do
     result =
       Registry.update_value(S, :global, fn value ->
@@ -64,6 +68,7 @@ defmodule SystemRegistry.Global do
     {:noreply, s}
   end
 
+  @impl true
   def handle_info({:DOWN, _, _, pid, _}, s) do
     Registration.unregister_all(pid)
 
