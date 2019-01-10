@@ -3,8 +3,8 @@ defmodule SystemRegistry.Processor.Server do
 
   alias SystemRegistry.Processor
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   def apply(transaction) do
@@ -16,8 +16,8 @@ defmodule SystemRegistry.Processor.Server do
     GenServer.call(__MODULE__, {:register_processor, {mod, pid}})
   end
 
-  def init(opts) do
-    {:ok, opts}
+  def init(_args) do
+    {:ok, []}
   end
 
   def handle_cast({:apply, t}, processors) do

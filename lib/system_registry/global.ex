@@ -4,8 +4,8 @@ defmodule SystemRegistry.Global do
   alias SystemRegistry.Storage.State, as: S
   alias SystemRegistry.{Registration, Transaction, Processor}
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   def put(scope, value) do
@@ -20,7 +20,7 @@ defmodule SystemRegistry.Global do
     GenServer.cast(__MODULE__, {:delete, pid, deletes, nodes})
   end
 
-  def init(_) do
+  def init(_args) do
     Registry.register(S, :global, %{})
 
     {:ok,
