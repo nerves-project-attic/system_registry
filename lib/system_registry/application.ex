@@ -6,19 +6,14 @@ defmodule SystemRegistry.Application do
   use Application
 
   def start(_type, _args) do
-    partitions = System.schedulers_online()
-    registries =
-      Enum.map([Registration, Binding, State], fn reg ->
-        reg = Module.concat(SystemRegistry.Storage, reg)
-
-        {Registry, keys: :unique, name: reg, partitions: partitions}
-      end)
-
     # Define workers and child supervisors to be supervised
     config_opts = Application.get_env(:system_registry, SystemRegistry.Processor.Config)
     state_opts = Application.get_env(:system_registry, SystemRegistry.Processor.State)
 
     workers = [
+      {Registry, keys: :unique, name: SystemRegistry.Storage.Registration},
+      {Registry, keys: :unique, name: SystemRegistry.Storage.Binding},
+      {Registry, keys: :unique, name: SystemRegistry.Storage.State},
       SystemRegistry.Global,
       SystemRegistry.Registration,
       SystemRegistry.Processor.Server,
@@ -27,6 +22,6 @@ defmodule SystemRegistry.Application do
     ]
 
     opts = [strategy: :one_for_one, name: SystemRegistry.Supervisor]
-    Supervisor.start_link(registries ++ workers, opts)
+    Supervisor.start_link(workers, opts)
   end
 end
