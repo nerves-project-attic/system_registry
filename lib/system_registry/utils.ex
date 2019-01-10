@@ -3,8 +3,18 @@ defmodule SystemRegistry.Utils do
 
   alias SystemRegistry.Storage.State, as: S
 
-  def strip(values) do
-    Enum.map(values, fn {_, result} -> result end) |> List.first() || []
+  @doc """
+  Strip off the value returned by a Registry lookup.
+
+  Many Registry functions return a list of {pid(), value()} tuples. Most
+  calls only expect one result and only the value is needed. This extracts
+  the value.
+  """
+  @spec strip(list()) :: any()
+  def strip([]), do: []
+
+  def strip([{_value, result}]) do
+    result
   end
 
   def deep_merge(left, right) do
