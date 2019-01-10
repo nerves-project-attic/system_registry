@@ -45,10 +45,10 @@ defmodule SystemRegistry.Transaction do
 
   def update(%__MODULE__{} = t, scope, value) do
     leaf = Node.leaf(scope, pid: t.pid)
-    inodes = Node.inodes(scope)
+    internal_nodes = Node.internal_nodes(scope)
 
     nodes =
-      [leaf | inodes]
+      [leaf | internal_nodes]
       |> Enum.reduce(t.update_nodes, &MapSet.put(&2, &1))
 
     scope_map = scope(scope, value)

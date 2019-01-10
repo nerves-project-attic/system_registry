@@ -21,8 +21,8 @@ defmodule SystemRegistry.Node do
   end
 
   def parent(node) do
-    [_l | inodes] = Enum.reverse(node)
-    Enum.reverse(inodes)
+    [_l | internal_nodes] = Enum.reverse(node)
+    Enum.reverse(internal_nodes)
   end
 
   def is_leaf?(%__MODULE__{from: nil}), do: false
@@ -30,8 +30,8 @@ defmodule SystemRegistry.Node do
 
   def leaf(node, opts \\ []) do
     pid = opts[:pid] || self()
-    [l | inodes] = Enum.reverse(node)
-    parent = Enum.reverse(inodes)
+    [l | internal_nodes] = Enum.reverse(node)
+    parent = Enum.reverse(internal_nodes)
     %__MODULE__{parent: parent, node: node, key: l, from: pid}
   end
 
@@ -84,19 +84,19 @@ defmodule SystemRegistry.Node do
     end
   end
 
-  def inodes(node) do
+  def internal_nodes(node) do
     node
     |> Enum.reverse()
     |> tl()
-    |> inode()
+    |> internal_node()
   end
 
-  defp inode(_, _ \\ [])
-  defp inode([], inodes), do: inodes
+  defp internal_node(_, _ \\ [])
+  defp internal_node([], internal_nodes), do: internal_nodes
 
-  defp inode([key | path], inodes) do
+  defp internal_node([key | path], internal_nodes) do
     parent = Enum.reverse(path)
-    inode = %__MODULE__{parent: parent, node: parent ++ [key], key: key}
-    inode(path, [inode | inodes])
+    internal_node = %__MODULE__{parent: parent, node: parent ++ [key], key: key}
+    internal_node(path, [internal_node | internal_nodes])
   end
 end
