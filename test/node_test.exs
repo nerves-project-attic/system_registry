@@ -10,7 +10,9 @@ defmodule SystemRegistry.NodeTest do
 
   test "Node Structures" do
     assert [:a] == Node.parent([:a, :b])
-    assert %Node{parent: [:a], node: [:a, :b], from: self(), key: :b} == Node.leaf([:a, :b])
+
+    assert %Node{parent: [:a], node: [:a, :b], from: self(), key: :b} ==
+             Node.leaf([:a, :b], self())
 
     assert [%Node{parent: [], node: [:a], from: nil, key: :a}] == Node.internal_nodes([:a, :b])
   end

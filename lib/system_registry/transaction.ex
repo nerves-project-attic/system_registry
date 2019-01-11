@@ -46,7 +46,7 @@ defmodule SystemRegistry.Transaction do
   end
 
   def update(%__MODULE__{} = t, scope, value) do
-    leaf = Node.leaf(scope, pid: t.pid)
+    leaf = Node.leaf(scope, t.pid)
     internal_nodes = Node.internal_nodes(scope)
 
     nodes =
@@ -80,7 +80,7 @@ defmodule SystemRegistry.Transaction do
   end
 
   def delete(%__MODULE__{} = t, scope) do
-    leaf = Node.leaf(scope, pid: t.pid)
+    leaf = Node.leaf(scope, t.pid)
     %{t | delete_nodes: MapSet.put(t.delete_nodes, leaf), deletes: MapSet.put(t.deletes, leaf)}
   end
 
@@ -202,7 +202,7 @@ defmodule SystemRegistry.Transaction do
         end
       end)
 
-    Enum.map(prune, &Node.leaf(&1, pid: t.pid))
+    Enum.map(prune, &Node.leaf(&1, t.pid))
     |> Enum.reduce(t, fn node, t ->
       %{t | delete_nodes: MapSet.put(t.delete_nodes, node)}
     end)

@@ -25,8 +25,8 @@ defmodule SystemRegistry.Node do
   def is_leaf?(%__MODULE__{from: nil}), do: false
   def is_leaf?(%__MODULE__{}), do: true
 
-  def leaf(node, opts \\ []) do
-    pid = opts[:pid] || self()
+  @spec leaf(SystemRegistry.scope(), pid()) :: t()
+  def leaf(node, pid) do
     [l | internal_nodes] = Enum.reverse(node)
     parent = Enum.reverse(internal_nodes)
     %__MODULE__{parent: parent, node: node, key: l, from: pid}
