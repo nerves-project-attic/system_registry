@@ -2,9 +2,9 @@ defmodule SystemRegistry.Node do
   defstruct parent: [], node: [], key: nil, from: nil
 
   @type t :: [
-          parent: [term],
-          node: [term],
-          key: term,
+          parent: SystemRegistry.scope(),
+          node: SystemRegistry.scope(),
+          key: any(),
           from: pid | nil
         ]
 
@@ -59,6 +59,7 @@ defmodule SystemRegistry.Node do
     Enum.flat_map(map, fn {k, v} -> leaf_nodes([k | pred], v) end)
   end
 
+  @spec trim_tree(any(), SystemRegistry.scope(), any()) :: any()
   def trim_tree(value, [], _), do: value
 
   def trim_tree(value, [key | t] = path, bind_key) when is_map(value) do
@@ -90,6 +91,7 @@ defmodule SystemRegistry.Node do
     |> internal_node()
   end
 
+  @spec internal_node(SystemRegistry.scope(), [t()]) :: [t()]
   defp internal_node(_, _ \\ [])
   defp internal_node([], internal_nodes), do: internal_nodes
 

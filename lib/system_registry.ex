@@ -12,7 +12,8 @@ defmodule SystemRegistry do
     the scope of the operation as a list of keys to walk to the desired tree node.
   """
 
-  @type scope :: [any()]
+  @type key :: atom() | String.t()
+  @type scope :: [key()]
 
   alias SystemRegistry.{Transaction, Registration, Processor}
   alias SystemRegistry.Storage.State, as: S
@@ -27,7 +28,7 @@ defmodule SystemRegistry do
       {:ok, {%{a: 1}, %{}}}
 
   """
-  @spec transaction(opts :: Keyword.t()) :: Transaction.t()
+  @spec transaction(Keyword.t()) :: Transaction.t()
   def transaction(opts \\ []) do
     Transaction.begin(opts)
   end
@@ -228,7 +229,7 @@ defmodule SystemRegistry do
       iex> SystemRegistry.match(self(), %{a: %{b: 2}})
       %{}
   """
-  @spec match(key :: term, match_spec :: term) :: map
+  @spec match(key(), match_spec :: term) :: map
   def match(key \\ :global, match_spec) do
     value = Registry.match(S, key, match_spec) |> strip()
 
@@ -310,7 +311,7 @@ defmodule SystemRegistry do
   @doc """
     Unregister process from receiving notifications
   """
-  @spec unregister(key :: term) :: :ok | {:error, term}
+  @spec unregister(key()) :: :ok | {:error, term}
   def unregister(key \\ :global) do
     Registration.unregister(key)
   end

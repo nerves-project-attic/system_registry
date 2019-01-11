@@ -32,18 +32,22 @@ defmodule SystemRegistry.Registration do
     end
   end
 
+  @spec register(pid() | nil, keyword()) :: :ok
   def register(pid \\ nil, opts) do
     GenServer.call(__MODULE__, {:register, pid || self(), opts})
   end
 
+  @spec unregister(pid() | nil, SystemRegistry.key()) :: :ok
   def unregister(pid \\ nil, key) do
     GenServer.call(__MODULE__, {:unregister, pid || self(), key})
   end
 
+  @spec unregister_all(pid() | nil) :: :ok
   def unregister_all(pid \\ nil) do
     GenServer.call(__MODULE__, {:unregister, pid || self()})
   end
 
+  @spec notify(SystemRegistry.key(), any()) :: :ok
   def notify(key, value) do
     GenServer.cast(__MODULE__, {:notify, key, value})
   end
