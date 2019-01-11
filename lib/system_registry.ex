@@ -12,7 +12,7 @@ defmodule SystemRegistry do
     the scope of the operation as a list of keys to walk to the desired tree node.
   """
 
-  @type scope :: [term]
+  @type scope :: [any()]
 
   alias SystemRegistry.{Transaction, Registration, Processor}
   alias SystemRegistry.Storage.State, as: S
@@ -297,7 +297,7 @@ defmodule SystemRegistry do
       {:system_registry, :global, %{state: %{a: 3}}}
 
   """
-  @spec register(opts :: keyword) :: :ok | {:error, term}
+  @spec register(keyword()) :: :ok | {:error, term}
   def register(opts \\ []) do
     key = opts[:key] || :global
 

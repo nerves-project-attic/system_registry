@@ -49,6 +49,7 @@ defmodule SystemRegistry.Node do
     iex> SystemRegistry.Node.leaf_nodes(%{})
     []
   """
+  @spec leaf_nodes(map()) :: [SystemRegistry.scope()]
   def leaf_nodes(map) do
     leaf_nodes([], map)
   end
@@ -84,6 +85,7 @@ defmodule SystemRegistry.Node do
     end
   end
 
+  @spec internal_nodes(SystemRegistry.scope()) :: [t()]
   def internal_nodes(node) do
     node
     |> Enum.reverse()

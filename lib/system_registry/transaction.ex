@@ -24,6 +24,7 @@ defmodule SystemRegistry.Transaction do
           deletes: MapSet.t()
         }
 
+  @spec begin(keyword()) :: t()
   def begin(opts \\ []) do
     %__MODULE__{
       pid: self(),
@@ -37,6 +38,7 @@ defmodule SystemRegistry.Transaction do
   end
 
   # Add an update to a transaction
+  @spec update(t(), SystemRegistry.scope(), any()) :: t()
   def update(%__MODULE__{} = t, scope, value) when is_map(value) do
     Enum.reduce(value, t, fn {k, v}, t ->
       update(t, scope ++ [k], v)
@@ -56,6 +58,7 @@ defmodule SystemRegistry.Transaction do
     %{t | update_nodes: nodes, updates: updates}
   end
 
+  @spec move(t(), SystemRegistry.scope(), SystemRegistry.scope()) :: t()
   def move(%__MODULE__{} = t, old_scope, new_scope) do
     current_value =
       Registry.match(S, t.key, :_)
@@ -68,6 +71,7 @@ defmodule SystemRegistry.Transaction do
     |> update(new_scope, new_value)
   end
 
+  @spec delete(t(), any()) :: t()
   def delete(%__MODULE__{} = t, value) when is_map(value) do
     Node.leaf_nodes(value)
     |> Enum.reduce(t, fn node, t ->
@@ -80,6 +84,7 @@ defmodule SystemRegistry.Transaction do
     %{t | delete_nodes: MapSet.put(t.delete_nodes, leaf), deletes: MapSet.put(t.deletes, leaf)}
   end
 
+  @spec delete_all(t(), pid(), any()) :: t()
   def delete_all(%__MODULE__{} = t, pid, key) do
     nodes =
       Registry.lookup(B, {:index, pid, key})
@@ -90,12 +95,14 @@ defmodule SystemRegistry.Transaction do
     end)
   end
 
+  @spec prepare(t()) :: t()
   def prepare(%__MODULE__{} = t) do
     t
     |> prepare_deletes()
     |> prepare_delete_nodes()
   end
 
+  @spec commit(t()) :: {:error, any()} | {:ok, {map(), map()}}
   def commit(%__MODULE__{} = t) do
     Registry.register(S, t.key, %{})
 
