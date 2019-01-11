@@ -51,7 +51,7 @@ defmodule SystemRegistry.Transaction do
       [leaf | internal_nodes]
       |> Enum.reduce(t.update_nodes, &MapSet.put(&2, &1))
 
-    scope_map = scope(scope, value)
+    scope_map = to_nested_map(scope, value)
     updates = deep_merge(t.updates, scope_map)
     %{t | update_nodes: nodes, updates: updates}
   end
@@ -161,7 +161,16 @@ defmodule SystemRegistry.Transaction do
     end)
   end
 
-  def scope(scope, value) do
+  @doc """
+  Convert the given scope and value to nexted maps
+
+  ```elixir
+  iex> SystemRegistry.Transaction.to_nested_map([:a, :b, :c], 1)
+  %{a: %{b: %{c: 1}}}
+  ```
+  """
+  @spec to_nested_map(SystemRegistry.scope(), any()) :: map()
+  def to_nested_map(scope, value) do
     scope
     |> Enum.reverse()
     |> Enum.reduce(value, &Map.put(%{}, &1, &2))
@@ -179,7 +188,7 @@ defmodule SystemRegistry.Transaction do
 
           map ->
             scopes =
-              scope(scope, map)
+              to_nested_map(scope, map)
               |> Node.leaf_nodes()
 
             deletes ++ scopes
@@ -205,7 +214,7 @@ defmodule SystemRegistry.Transaction do
             {delete_nodes, MapSet.put(deletes, node)}
 
           true ->
-            scope = scope(node.node, %{})
+            scope = to_nested_map(node.node, %{})
             reg = Registry.match(S, t.key, scope) |> strip()
             reg_scope = get_in(reg, node.node)
 
