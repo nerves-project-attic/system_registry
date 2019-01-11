@@ -109,7 +109,7 @@ defmodule SystemRegistry.RegistrationTest do
       Registry.lookup(B, {:global, [:state, root, :a, :b]})
       |> SR.Utils.strip()
 
-    assert reg == []
+    assert reg == nil
   end
 
   defp update_task(scope, value) do

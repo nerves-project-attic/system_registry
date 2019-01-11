@@ -11,7 +11,7 @@ defmodule SystemRegistry.Utils do
   the value.
   """
   @spec strip(list()) :: any()
-  def strip([]), do: []
+  def strip([]), do: nil
 
   def strip([{_value, result}]) do
     result

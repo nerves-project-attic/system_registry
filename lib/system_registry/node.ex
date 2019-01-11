@@ -14,10 +14,7 @@ defmodule SystemRegistry.Node do
   import SystemRegistry.Utils
 
   def binding(key, scope) do
-    case Registry.lookup(B, {key, scope}) do
-      [] -> nil
-      binding -> strip(binding)
-    end
+    Registry.lookup(B, {key, scope}) |> strip()
   end
 
   def parent(node) do

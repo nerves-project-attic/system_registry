@@ -214,7 +214,7 @@ defmodule SystemRegistry.Transaction do
         reg_node = Registry.lookup(B, {t.key, node.node}) |> strip()
 
         cond do
-          reg_node == [] ->
+          reg_node == nil ->
             {delete_nodes, MapSet.put(deletes, node)}
 
           Node.is_leaf?(reg_node) ->

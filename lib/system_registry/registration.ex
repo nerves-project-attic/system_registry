@@ -14,15 +14,22 @@ defmodule SystemRegistry.Registration do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def registered?(pid \\ nil, key) do
-    pid = pid || self()
+  @spec registered?(pid(), any()) :: boolean()
+  def registered?(pid \\ self(), key) do
+    result =
+      Registry.lookup(R, key)
+      |> strip()
 
-    Registry.lookup(R, key)
-    |> strip()
-    |> Enum.any?(fn
-      %{pid: reg} -> reg == pid
-      _ -> false
-    end)
+    case result do
+      nil ->
+        false
+
+      _ ->
+        Enum.any?(result, fn
+          %{pid: reg} -> reg == pid
+          _ -> false
+        end)
+    end
   end
 
   def register(pid \\ nil, opts) do

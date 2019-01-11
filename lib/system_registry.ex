@@ -233,7 +233,7 @@ defmodule SystemRegistry do
     value = Registry.match(S, key, match_spec) |> strip()
 
     case value do
-      [] -> %{}
+      nil -> %{}
       value -> value
     end
   end
