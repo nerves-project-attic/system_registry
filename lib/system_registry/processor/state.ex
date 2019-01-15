@@ -25,22 +25,26 @@ defmodule SystemRegistry.Processor.State do
     leaf_reserved =
       Node.leaf_nodes(t.updates)
       |> Enum.reduce([], fn scope, reserved ->
-        case get_in(global, scope) do
-          nil ->
-            reserved
-
-          map ->
-            frag_reserved =
-              Transaction.scope(scope, map)
-              |> Node.leaf_nodes()
-              |> Enum.map(&%Node{node: &1})
-              |> permissions(t.pid)
-
-            if frag_reserved == [] do
+        try do
+          case get_in(global, scope) do
+            nil ->
               reserved
-            else
-              [scope | reserved]
-            end
+
+            map ->
+              frag_reserved =
+                Transaction.scope(scope, map)
+                |> Node.leaf_nodes()
+                |> Enum.map(&%Node{node: &1})
+                |> permissions(t.pid)
+
+              if frag_reserved == [] do
+                reserved
+              else
+                [scope | reserved]
+              end
+          end
+        rescue
+          _e -> reserved
         end
       end)
 
