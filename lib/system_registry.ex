@@ -250,7 +250,7 @@ defmodule SystemRegistry do
       * `:min_interval` - Default: 0, The minimum amount of time to wait after hysteresis,
         but before the next message is to be delivered.
 
-    With both options defaulting to , you will receive every message.
+    With both options defaulting to 0, you will receive every message.
 
     Examples
 
