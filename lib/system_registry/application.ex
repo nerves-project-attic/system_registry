@@ -7,6 +7,7 @@ defmodule SystemRegistry.Application do
 
   def start(_type, _args) do
     partitions = System.schedulers_online()
+
     registries =
       Enum.map([Registration, Binding, State], fn reg ->
         reg = Module.concat(SystemRegistry.Storage, reg)

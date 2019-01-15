@@ -173,16 +173,21 @@ defmodule SystemRegistry.Transaction do
     prune =
       Node.leaf_nodes(t.updates)
       |> Enum.reduce([], fn scope, deletes ->
-        case get_in(local, scope) do
-          nil ->
+        try do
+          case get_in(local, scope) do
+            nil ->
+              deletes
+
+            map ->
+              scopes =
+                scope(scope, map)
+                |> Node.leaf_nodes()
+
+              deletes ++ scopes
+          end
+        rescue
+          _e ->
             deletes
-
-          map ->
-            scopes =
-              scope(scope, map)
-              |> Node.leaf_nodes()
-
-            deletes ++ scopes
         end
       end)
 
