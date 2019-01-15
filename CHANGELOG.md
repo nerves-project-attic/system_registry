@@ -1,5 +1,12 @@
 # SystemRegistry
 
+## v0.8.1
+
+* Bug fixes
+  * Updated docs and simplified code
+  * Remove superfluous calls to `Processor.Server.apply/1`
+  * Prevent calls to `Kernel.get_in/3` from raising an exception
+
 ## v0.8.0
 
 * Enhancements
