@@ -31,7 +31,7 @@ defmodule SystemRegistry.Processor.State do
 
           map ->
             frag_reserved =
-              Transaction.scope(scope, map)
+              Transaction.to_nested_map(scope, map)
               |> Node.leaf_nodes()
               |> Enum.map(&%Node{node: &1})
               |> permissions(t.pid)
