@@ -7,11 +7,11 @@ defmodule SystemRegistry.Task do
   For example, to perform an operation every time that the IPv4 address changes
   on "wlan0", do this:
 
-    worker(SystemRegistry.Task, [
+    {SystemRegistry.Task, [
       [:state, :network_interface,  "wlan0", :ipv4_address],
       fn({_old, _new}) ->
         # Do something
-      end])
+      end]}
 
   This technique should be used sparingly and only for performing simple side
   effects to state change. 
@@ -19,6 +19,17 @@ defmodule SystemRegistry.Task do
   """
 
   use GenServer
+
+  def child_spec([scope, fun]) do
+    child_spec([scope, fun, []])
+  end
+
+  def child_spec([scope, fun, opts]) do
+    %{
+      id: opts[:id] || __MODULE__,
+      start: {__MODULE__, :start_link, [scope, fun, opts]}
+    }
+  end
 
   @doc """
   Starts a task as part of a supervision tree.
