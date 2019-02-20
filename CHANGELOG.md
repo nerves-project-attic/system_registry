@@ -1,5 +1,10 @@
 # SystemRegistry
 
+## v0.8.2
+
+* Bug fixes
+  * Update SystemRegistry.Task to use new supervisor spec
+
 ## v0.8.1
 
 * Bug fixes

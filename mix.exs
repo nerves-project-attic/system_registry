@@ -4,7 +4,7 @@ defmodule SystemRegistry.Mixfile do
   def project do
     [
       app: :system_registry,
-      version: "0.8.1",
+      version: "0.8.2",
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
