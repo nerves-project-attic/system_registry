@@ -1,9 +1,9 @@
 defmodule SystemRegistry.Processor do
-  @doc "Handles a validation. Takes a transaction, and returns {:ok, reply, state} or {:error, reason, state}."
+  @doc "Handles a validation. Takes a transaction, and returns `{:ok, reply, state}` or `{:error, reason, state}`."
   @callback handle_validate(SystemRegistry.Transaction.t(), state :: term) ::
               {:ok, term, state :: term} | {:error, reason :: term, state :: term}
 
-  @doc "Handles a commit. Takes a transaction and returns {:ok, reply, state} | {:error, reason, state}."
+  @doc "Handles a commit. Takes a transaction and returns `{:ok, reply, state}` or `{:error, reason, state}`."
   @callback handle_commit(SystemRegistry.Transaction.t(), state :: term) ::
               {:ok, term, state :: term} | {:error, reason :: term, state :: term}
 
