@@ -1,21 +1,21 @@
 defmodule SystemRegistry.Task do
   @moduledoc """
-
   Creates a process that executes a function anytime the contents of a given
-  system_registry scope change.
+  `SystemRegistry` scope change.
 
   For example, to perform an operation every time that the IPv4 address changes
-  on "wlan0", do this:
+  on `"wlan0"`, do this:
 
-    {SystemRegistry.Task, [
-      [:state, :network_interface,  "wlan0", :ipv4_address],
-      fn({_old, _new}) ->
-        # Do something
-      end]}
+      {SystemRegistry.Task,
+       [
+         [:state, :network_interface, "wlan0", :ipv4_address],
+         fn {_old, _new} ->
+           # Do something
+         end
+       ]}
 
   This technique should be used sparingly and only for performing simple side
   effects to state change. 
-
   """
 
   use GenServer

@@ -40,14 +40,15 @@ defmodule SystemRegistry.Node do
 
   ## Examples
 
-    iex> SystemRegistry.Node.leaf_nodes(%{a: 2})
-    [[:a]]
+      iex> SystemRegistry.Node.leaf_nodes(%{a: 2})
+      [[:a]]
 
-    iex> SystemRegistry.Node.leaf_nodes(%{a: %{b: 1, c: %{d: 2}}})
-    [[:a, :b], [:a, :c, :d]]
+      iex> SystemRegistry.Node.leaf_nodes(%{a: %{b: 1, c: %{d: 2}}})
+      [[:a, :b], [:a, :c, :d]]
 
-    iex> SystemRegistry.Node.leaf_nodes(%{})
-    []
+      iex> SystemRegistry.Node.leaf_nodes(%{})
+      []
+
   """
   def leaf_nodes(map) do
     leaf_nodes([], map)

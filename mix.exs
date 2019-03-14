@@ -10,6 +10,7 @@ defmodule SystemRegistry.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       description: description(),
       package: package(),
+      source_url: "https://github.com/nerves-project/system_registry",
       docs: docs(),
       deps: deps()
     ]

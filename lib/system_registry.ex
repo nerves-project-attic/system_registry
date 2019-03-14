@@ -1,15 +1,16 @@
 defmodule SystemRegistry do
   @moduledoc """
-    SystemRegistry is a transactional nested term storage and dispatch system.
-    It takes a different approach to a typical publish-subscribe pattern by
-    focusing on data instead of events. SystemRegistry is local
-    (as opposed to distributed) and transactional (as opposed to asynchronous)
-    to eliminate race conditions. It also supports eventual consistency with
-    rate-limiting consumers that control how often they receive state updates.
+  A transactional nested term storage and dispatch system.
 
-    Data in SystemRegistry is stored as a tree of nodes, represented by a
-    nested map. In order to perform operations on the registry data, you specify
-    the scope of the operation as a list of keys to walk to the desired tree node.
+  `SystemRegistry` takes a different approach to a typical publish-subscribe pattern by
+  focusing on data instead of events. It is local
+  (as opposed to distributed) and transactional (as opposed to asynchronous)
+  to eliminate race conditions. It also supports eventual consistency with
+  rate-limiting consumers that control how often they receive state updates.
+
+  Data in `SystemRegistry` is stored as a tree of nodes, represented by a
+  nested map. In order to perform operations on the registry data, you specify
+  the scope of the operation as a list of keys to walk to the desired tree node.
   """
 
   @type scope :: [term]
@@ -19,9 +20,10 @@ defmodule SystemRegistry do
   import SystemRegistry.Utils
 
   @doc """
-    Returns a transaction struct to pass to update/3 and delete/4 to chain
-    modifications to to group. Prevents notifying registrants for each action.
-    Example:
+  Returns a transaction struct to pass to `update/3` and `delete/2` to chain
+  modifications to to group. Prevents notifying registrants for each action.
+
+  ## Example
 
       iex> SystemRegistry.transaction |> SystemRegistry.update([:a], 1) |> SystemRegistry.commit
       {:ok, {%{a: 1}, %{}}}
@@ -33,7 +35,7 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Commit a transaction. Attempts to apply all changes. If successful, will notify_all.
+  Commit a transaction. Attempts to apply all changes. If successful, will notify all.
   """
   @spec commit(Transaction.t()) :: {:ok, {new :: map, old :: map}} | {:error, term}
   def commit(transaction) do
@@ -51,28 +53,31 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Execute an transaction to insert or modify data.
+  Execute a transaction to insert or modify data.
 
-    Update can be called on its own:
+  ## Examples
+
+  `update/3` can be called on its own:
 
       iex> SystemRegistry.update([:a], 1)
       {:ok, {%{a: 1}, %{}}}
 
-    Or it can be included as part of a transaction pipeline
+  or it can be included as part of a transaction pipeline:
 
       iex> SystemRegistry.transaction |> SystemRegistry.update([:a], 1) |> SystemRegistry.commit
       {:ok, {%{a: 1}, %{}}}
 
-    Passing a map to update will recursively expand into a transaction
-    for example this:
+  Passing a map to update will recursively expand into a transaction
+  for example this:
 
       iex> SystemRegistry.update([:a], %{b: 1})
       {:ok, {%{a: %{b: 1}}, %{}}}
 
-    is equivalent to this:
+  is equivalent to this:
 
       iex>  SystemRegistry.update([:a, :b], 1)
       {:ok, {%{a: %{b: 1}}, %{}}}
+
   """
   @spec update(one, scope, value :: any) :: Transaction.t() when one: Transaction.t()
   def update(_, _, _ \\ nil)
@@ -93,17 +98,19 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Execute an transaction to modify data in place by passing a modifier function.
+  Execute a transaction to modify data in place by passing a modifier function.
 
-    Allows for the manipulation of the value at the scope. Useful for when the
-    value needs to be modified in place.
+  Allows for the manipulation of the value at the scope. Useful for when the
+  value needs to be modified in place.
 
-    For Example:
+  ## Example
 
       iex> SystemRegistry.update([:a], [1])
       {:ok, {%{a: [1]}, %{}}}
+
       iex> SystemRegistry.update_in([:a], fn(value) -> [2 | value] end)
       {:ok, {%{a: [2, 1]}, %{a: [1]}}}
+
   """
   @spec update_in(scope, (term -> term), opts :: keyword()) ::
           {:ok, {new :: map, old :: map}} | {:error, term}
@@ -122,21 +129,26 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Move a node from one scope to another
+  Move a node from one scope to another.
 
-    Move can be called on its own:
+  ## Examples
+
+  `move/3` can be called on its own:
 
       iex> SystemRegistry.update([:a], 1)
       {:ok, {%{a: 1}, %{}}}
+
       iex> SystemRegistry.move([:a], [:b])
       {:ok, {%{b: 1}, %{a: 1}}}
 
-    Or it can be included as part of a transaction pipeline
+  or it can be included as part of a transaction pipeline:
 
       iex> SystemRegistry.update([:a], 1)
       {:ok, {%{a: 1}, %{}}}
+
       iex> SystemRegistry.transaction |> SystemRegistry.move([:a], [:b]) |> SystemRegistry.commit
       {:ok, {%{b: 1}, %{a: 1}}}
+
   """
   @spec move(transaction, scope, scope) :: Transaction.t() when transaction: Transaction.t()
   def move(_, _, _ \\ nil)
@@ -157,27 +169,32 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Execute an transaction to delete keys and their values.
+  Execute a transaction to delete keys and their values.
 
-    Delete can be called on its own:
+  ## Examples
+
+  `delete/2` can be called on its own:
 
       iex> SystemRegistry.update([:a], 1)
       {:ok, {%{a: 1}, %{}}}
+
       iex> SystemRegistry.delete([:a])
       {:ok, {%{}, %{a: 1}}}
 
-    Or it can be included as part of a transaction pipeline
+  or it can be included as part of a transaction pipeline:
 
       iex> SystemRegistry.update([:a], 1)
       {:ok, {%{a: 1}, %{}}}
+
       iex> SystemRegistry.transaction |> SystemRegistry.delete([:a]) |> SystemRegistry.commit
       {:ok, {%{}, %{a: 1}}}
 
-    If you pass an internal node to delete, it will delete all the keys the process
-    ownes under it.
+  If you pass an internal node to `delete/2`, it will delete all the keys the process
+  owns under it:
 
       iex> SystemRegistry.update([:a, :b], 1)
       {:ok, {%{a: %{b: 1}}, %{}}}
+
       iex> SystemRegistry.delete([:a])
       {:ok, {%{}, %{a: %{b: 1}}}}
 
@@ -199,10 +216,13 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Delete all keys owned by the calling process.
+  Delete all keys owned by the calling process.
+
+  ## Example
 
       iex> SystemRegistry.update([:a, :b], 1)
       {:ok, {%{a: %{b: 1}}, %{}}}
+
       iex> SystemRegistry.delete_all()
       {:ok, {%{}, %{a: %{b: 1}}}}
 
@@ -217,16 +237,22 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Query the SystemRegistry using a match spec.
+  Query the `SystemRegistry` using a match spec.
+
+  ## Examples
 
       iex> SystemRegistry.update([:a, :b], 1)
       {:ok, {%{a: %{b: 1}}, %{}}}
+
       iex> SystemRegistry.match(self(), :_)
       %{a: %{b: 1}}
+
       iex> SystemRegistry.match(self(), %{a: %{}})
       %{a: %{b: 1}}
+
       iex> SystemRegistry.match(self(), %{a: %{b: 2}})
       %{}
+
   """
   @spec match(key :: term, match_spec :: term) :: map
   def match(key \\ :global, match_spec) do
@@ -239,19 +265,21 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Register process to receive notifications.
-    Registrants are rate-limited and require that you pass an interval.
-    Upon registration, the caller will receive the current state.
+  Register process to receive notifications.
+ 
+  Registrants are rate-limited and require that you pass an interval.
+  Upon registration, the caller will receive the current state.
 
-    options
-      * `:hysteresis` - Default: 0, The amount of time to wait before delivering the first
-        change message.
-      * `:min_interval` - Default: 0, The minimum amount of time to wait after hysteresis,
-        but before the next message is to be delivered.
+  ## Options
 
-    With both options defaulting to , you will receive every message.
+    * `:hysteresis` - The amount of time to wait before delivering the first
+      change message. Default: `0`
+    * `:min_interval` - The minimum amount of time to wait after hysteresis,
+      but before the next message is to be delivered. Default: `0`
 
-    Examples
+  With both options defaulting to `0`, you will receive every message.
+
+  ## Examples
 
       iex> mailbox = fn ->
       ...>   receive do
@@ -308,7 +336,7 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Unregister process from receiving notifications
+  Unregister process from receiving notifications.
   """
   @spec unregister(key :: term) :: :ok | {:error, term}
   def unregister(key \\ :global) do
@@ -316,7 +344,7 @@ defmodule SystemRegistry do
   end
 
   @doc """
-    Unregister process from receiving notifications
+  Unregister process from receiving notifications.
   """
   @spec unregister_all(pid | nil) :: :ok | {:error, term}
   def unregister_all(pid \\ nil) do
