@@ -77,7 +77,7 @@ sub-key of `:state` that has been set by a different process.
 For example:
 
 ```elixir
-Task.start(fn -> SystemRegistry.update([:state, :a], 1))
+Task.start(fn -> SystemRegistry.update([:state, :a], 1) end)
 
 {:error, {SystemRegistry.Processor.State, {:reserved_keys, [:a]}}} = SystemRegistry.update([:state, :a], 2)
 ```
