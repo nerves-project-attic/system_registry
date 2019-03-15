@@ -44,13 +44,13 @@ defmodule SystemRegistry.RegistrationTest do
     SR.register(key: key)
     update = %{root => %{a: 1}}
     SR.update([], update)
-    assert_receive({:system_registry, ^key, ^update}, 10)
+    assert_receive({:system_registry, ^key, ^update}, 20)
   end
 
   test "global notification delivery", %{root: root} do
     SR.register()
     SR.update([], %{state: %{root => %{a: 1}}})
-    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 20)
   end
 
   test "rate limited notification delivery", %{root: root} do
@@ -65,19 +65,19 @@ defmodule SystemRegistry.RegistrationTest do
   test "rate limit of 0 should dispatch every message", %{root: root} do
     SR.register()
     SR.update([], %{state: %{root => %{a: 1}}})
-    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 20)
     SR.update([], %{state: %{root => %{a: 2}}})
-    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 10)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 20)
   end
 
   test "hysteresis opts for rate limiting", %{root: root} do
     SR.register(hysteresis: 20, min_interval: 100)
     SR.update([], %{state: %{root => %{a: 1}}})
     refute_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 10)
-    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 20)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 1}}}}, 25)
     SR.update([], %{state: %{root => %{a: 2}}})
     refute_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 50)
-    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 50)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: 2}}}}, 65)
   end
 
   test "notifications on update / delete", %{root: root} do
