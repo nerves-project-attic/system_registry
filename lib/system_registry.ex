@@ -266,7 +266,7 @@ defmodule SystemRegistry do
 
   @doc """
   Register process to receive notifications.
- 
+
   Registrants are rate-limited and require that you pass an interval.
   Upon registration, the caller will receive the current state.
 

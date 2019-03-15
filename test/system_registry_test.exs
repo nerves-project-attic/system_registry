@@ -1,6 +1,5 @@
 defmodule SystemRegistryTest do
   use SystemRegistryTest.Case
-  doctest SystemRegistry
 
   alias SystemRegistry, as: SR
   alias SystemRegistry.Node
