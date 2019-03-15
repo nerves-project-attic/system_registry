@@ -89,8 +89,9 @@ defmodule SystemRegistry.RegistrationTest do
   end
 
   test "cannot convert an inner node into a leaf node", %{root: root} do
-    update_task([:state, root, :a, :b], 1)
     SR.register()
+    update_task([:state, root, :a, :b], 1)
+    assert_receive({:system_registry, :global, %{state: %{^root => %{a: %{b: 1}}}}})
 
     t =
       SR.transaction(notify_on_error: true)
